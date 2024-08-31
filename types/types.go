@@ -8,6 +8,9 @@ type UserStore interface {
 	CreateUser(User) error
 }
 
+// -------------------
+// Тип пользователя
+// -------------------
 type User struct {
 	ID        int 			`json:"id"`
 	FirstName string 		`json:"firstName"`

@@ -1,0 +1,41 @@
+:root {
+  font-family: "Martian Mono", monospace;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: rgba(0, 0, 0, 0.87);
+  background-color: #ffffff;
+}
+
+p {
+  margin: 0
+}
+
+a {
+  font-weight: 400;
+  color: #1b26f3;
+  text-decoration: none;
+}
+a:hover {
+  color: #2f38e6;
+}
+
+button {
+  font-family: "Martian Mono", monospace;
+  border: none;
+  border-radius: 3px;
+  color: #000;
+  font-size: 11px;
+  padding: 8px 13px;
+  cursor: pointer
+}
+
+input {
+  font-family: "Martian Mono", monospace;
+  font-size: 11px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}

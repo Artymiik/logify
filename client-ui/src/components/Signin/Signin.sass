@@ -4,10 +4,13 @@
   align-items: center
   justify-content: center
 
-  height: 90vh
+  height: 95vh
 
   .elements__signin
     text-align: center
+    box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2)
+    border-radius: 10px
+    padding: 30px 10px 30px 17px
 
     .title__signin
       font-size: 18px
@@ -17,13 +20,18 @@
       margin-bottom: 30px
       text-align: left
 
-      span
-        color: rgba(0, 17, 255, 1)
-
     .input__box
       position: relative
       display: flex
       margin: 0 auto
+
+      .firstName, .lastName
+        width: 7.7vw
+      .firstName
+        margin-right: 10px
+      .firstNameLabel,
+      .lastNameLabel
+        left: 10%
 
       label
         position: absolute
@@ -41,9 +49,8 @@
       input
         font-family: "Outfit", monospace
         padding: 21px 16px 8px 17px
-        width: 19vw
+        width: 18.5vw
         margin-bottom: 20px
-        // background: rgba(0, 0, 0, 0.5)
         outline: none
         border: 1px solid #dddddd
         border-radius: 6px
@@ -63,7 +70,7 @@
       font-family: "Outfit", monospace
       background: rgba(0, 17, 255, 1)
       color: #fff
-      width: 21vw
+      width: 20.5vw
       font-size: 14px
       letter-spacing: .3px
       border-radius: 6px
@@ -76,3 +83,5 @@
       margin-top: 10px
       color: #181818
       letter-spacing: .3px
+
+@import '../adaptive/_mobile'

@@ -12,17 +12,6 @@
 
 https://artemiik-portfolio.vercel.app/ -- поменять
 
-## Routes
-
-- Home
-- About
-- Works
-- Social Network
-- My plans
-- My Blog
-- Message
-- Sign in and Sign up
-
 **Server:**
 
 - Golang API

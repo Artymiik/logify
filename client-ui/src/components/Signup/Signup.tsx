@@ -6,16 +6,30 @@ export const Signup = () => {
     <>
       <div id="signin">
         <div className="elements__signin">
-          <h2 className="title__signin"><span>Welcome developer!</span> Sign up</h2>
+          <h2 className="title__signin">
+            <span>Welcome developer!</span> Sign up
+          </h2>
 
-          <div className="input__box">
-            <input type="text" name="firstName" required />
-            <label>first name</label>
-          </div>
+          <div className="flex__name__signup">
+            <div className="input__box">
+              <input
+                type="text"
+                name="firstName"
+                className="firstName"
+                required
+              />
+              <label className="firstNameLabel">first name</label>
+            </div>
 
-          <div className="input__box">
-            <input type="text" name="lastName" required />
-            <label>last name</label>
+            <div className="input__box">
+              <input
+                type="text"
+                name="lastName"
+                className="firstName"
+                required
+              />
+              <label className="lastNameLabel">last name</label>
+            </div>
           </div>
 
           <div className="input__box">

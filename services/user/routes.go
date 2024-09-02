@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/sikozonpc/ecom/services/auth"
 	"github.com/sikozonpc/ecom/types"
@@ -30,25 +31,71 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 // Функции для routers
 // -----------------------
 
-// login router
-func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {}
 
-// registration router
+// ----------------------
+// ----------------------
+// LOGIN ROUTER
+// ----------------------
+func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	// -----------------
+	// Получаем данные пользователя
+	// -----------------
+	var payload *types.LoginUserPayload
+
+	// Отправляем пользователю ошибку, что не все поля заполнены
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+	}
+
+	// Валидация данных от пользователя
+	if err := utils.Validate.Struct(payload); err != nil {
+		errors := err.(validator.ValidationErrors)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload: %v", errors))
+		return
+	}
+
+	// Получаем пользователя по email
+	u, err := h.store.GetUserByEmail(payload.Email)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("not found, invalid email/password"))
+		return
+	}
+
+	// Проверка пароля в БД и введеного
+	if !auth.ComprasePassword(u.Password, []byte(payload.Password)) {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("not found, invalid email/password"))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"token": ""})
+}
+
+// ----------------------
+// ----------------------
+// REGISTRATION ROUTER
+// ----------------------
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	// -----------------
 	// Получаем данные пользователя
 	// -----------------
-	var payload types.RegisterUserPayload
+	var payload *types.RegisterUserPayload
 
 	// Отправляем пользователю ошибку, что не все поля заполнены
-	if err := utils.ParseJSON(r, payload); err != nil {
+	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
+	}
+
+	// Валидация данных от пользователя
+	if err := utils.Validate.Struct(payload); err != nil {
+		errors := err.(validator.ValidationErrors)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload: %v", errors))
+		return
 	}
 
 	// Получаем пользователя по email
 	_, err := h.store.GetUserByEmail(payload.Email)
 	// если такой email есть, то ошибка
-	if err != nil {
+	if err == nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s already axists", payload.Email))
 		return
 	}

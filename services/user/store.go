@@ -11,16 +11,6 @@ type Store struct {
 	db *sql.DB
 }
 
-// CreateUser implements types.UserStore.
-func (s *Store) CreateUser(types.User) error {
-	panic("unimplemented")
-}
-
-// GetUserById implements types.UserStore.
-func (s *Store) GetUserById(id int) (*types.User, error) {
-	panic("unimplemented")
-}
-
 func NewStore(db *sql.DB) *Store {
 	return &Store{
 		db: db,
@@ -31,14 +21,18 @@ func NewStore(db *sql.DB) *Store {
 // Функция для вывода из БД user по email
 // ---------------------
 func (s *Store) GetUserByEmail(email string) (*types.User, error) {
-	// запрос
+	// -------------------------
+	// Запрос к БД на вывод пользователя по ID
+	// -------------------------
 	rows, err := s.db.Query("select * from users where email = ?", email)
 	// проверка ошибки
 	if err != nil {
 		return nil, err
 	}
 
+	// -------------------------
 	// читаем из результата
+	// -------------------------
 	u := new(types.User)
 	for rows.Next() {
 		u, err = scanRowIntoUser(rows)
@@ -48,7 +42,9 @@ func (s *Store) GetUserByEmail(email string) (*types.User, error) {
 		}
 	}
 
+	// -------------------------
 	// если нет пользователя то ошибка
+	// -------------------------
 	if u.ID == 0 {
 		return nil, fmt.Errorf("user not found")
 	}
@@ -81,13 +77,51 @@ func scanRowIntoUser(rows *sql.Rows) (*types.User, error) {
 // ------------------------
 // Получение пользователя из БД по ID
 // ------------------------
-func GetUserById(id int) (*types.User, error) {
-	return nil, nil
+func (s *Store) GetUserById(id int) (*types.User, error) {
+	// -----------------------
+	// Запрос к БД на вывод пользователя по ID
+	// -----------------------
+	rows, err := s.db.Query("select * from users where id = ?", id)
+	if err != nil {
+		return nil, err
+	}
+
+	// --------------------------------
+	// Пробегаем и читаем данные
+	// --------------------------------
+	u := new(types.User)
+	for rows.Next() {
+		u, err = scanRowIntoUser(rows)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// --------------------------------
+	// Если не нашли выдаем сообщение
+	// --------------------------------
+	if u.ID == 0 {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	return u, nil
 }
 
 // ------------------------
 // Создание пользователя
 // ------------------------
-func CreateUser(user types.User) error {
+func (s *Store) CreateUser(user types.User) error {
+	// ---------------------------
+	// запрос к БД на создания пользователя
+	// ---------------------------
+	_, err := s.db.Exec("insert into users (firstName, lastName, email, password) VALUES (?, ?, ?, ?)", user.FirstName, user.LastName, user.Email, user.Password)
+
+	// ---------------------
+	// Обработка ошибки БД
+	// ---------------------
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

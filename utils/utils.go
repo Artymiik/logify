@@ -4,13 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/go-playground/validator/v10"
 )
+
+// -----------------
+// Переменная для валидации данных
+// -----------------
+var Validate = validator.New()
 
 // ------------------------------
 // Проверка и декодирование данных от user
 // ------------------------------
 func ParseJSON(r *http.Request, payload any) error {
-	if (r.Body == nil) {
+	if r.Body == nil {
 		return fmt.Errorf("missing request body")
 	}
 

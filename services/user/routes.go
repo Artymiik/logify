@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
+	"github.com/sikozonpc/ecom/config"
 	"github.com/sikozonpc/ecom/services/auth"
 	"github.com/sikozonpc/ecom/types"
 	"github.com/sikozonpc/ecom/utils"
@@ -30,7 +31,6 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 // -----------------------
 // Функции для routers
 // -----------------------
-
 
 // ----------------------
 // ----------------------
@@ -67,7 +67,18 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, map[string]string{"token": ""})
+	// Создание JWT Token для пользователя
+	// Получение ключа JWT
+	secret := []byte(config.Envs.JWTSecret)
+	// Создаем JWT Token
+	token, err := auth.CreateJwt(secret, u.ID)
+	// Обработка ошибок JWT
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"token": token})
 }
 
 // ----------------------
@@ -110,9 +121,9 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	// создание пользователя
 	err = h.store.CreateUser(types.User{
 		FirstName: payload.FirstName,
-		LastName: payload.LastName,
-		Email: payload.Email,
-		Password: hashedPassword,
+		LastName:  payload.LastName,
+		Email:     payload.Email,
+		Password:  hashedPassword,
 	})
 
 	// обработка ошибка

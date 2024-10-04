@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/sikozonpc/ecom/services/logs"
+	"github.com/sikozonpc/ecom/services/site"
 	"github.com/sikozonpc/ecom/services/user"
 )
 
@@ -15,9 +17,9 @@ type APIServer struct {
 }
 
 func NewAPIServer(addr string, db *sql.DB) *APIServer {
-	return &APIServer {
+	return &APIServer{
 		addr: addr,
-		db: db,
+		db:   db,
 	}
 }
 
@@ -37,6 +39,20 @@ func (s *APIServer) Run() error {
 	userStore := user.NewStore(s.db)
 	userHandler := user.NewHandler(userStore)
 	userHandler.RegisterRoutes(subrouter)
+
+	// --------------------
+	// определение site функции
+	// --------------------
+	siteStore := site.NewStore(s.db)
+	siteHandler := site.NewHandler(siteStore, userStore)
+	siteHandler.RegisterRoutes(subrouter)
+
+	// ---------------------
+	// Определение logs (site) функции
+	// ---------------------
+	logsStore := logs.NewStore(s.db)
+	logsHandler := logs.NewHandler(logsStore, userStore, siteStore)
+	logsHandler.RegisterRoutes(subrouter)
 
 	// --------------------
 	// Возращяем http ответ

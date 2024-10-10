@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 :root {
-  font-family: "Martian Mono", monospace;
+  font-family: "Inter", sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color: rgba(0, 0, 0, 0.87);
-  background-color: #ffffff;
+  color: rgba(255, 255, 255, 1);
+  background-color: hsl(250, 24%, 9%);
 }
 
 p {
@@ -25,7 +25,7 @@ a:hover {
 }
 
 button {
-  font-family: "Martian Mono", monospace;
+  font-family: "Inter", sans-serif;
   border: none;
   border-radius: 3px;
   color: #000;
@@ -34,8 +34,12 @@ button {
   cursor: pointer;
 }
 
-input {
-  font-family: "Martian Mono", monospace;
+pre, code {
+  color: #dfdfdf;
+}
+
+input, textarea {
+  font-family: "Inter", sans-serif;
   font-size: 11px;
 }
 

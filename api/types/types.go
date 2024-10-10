@@ -17,15 +17,19 @@ type SiteStore interface {
 	GetSiteByName(name string) (*Site, error)
 	GetSiteById(id int) (*Site, error)
 	GetSiteBySiteID(id int) (*Site, error)
+	GetSitesByUserID(userID int) ([]Site, error)
 }
 
 type LogsStore interface {
 	CreateDefaultLog(Log) error
-	SelectLogs(id int) ([]Log, error)
+	GetLogByName(name string) (*Log, error)
+	SelectLogs(id int) ([]LogQuery, error)
 	CreateLogFile(name, string string, siteId int) error
 	GetLog(uniqueClient string) (*Log, error)
+	UpdateSettingsLog(settings *SettingsLogPayload, logName string) error
 	InsertIntoFileLog(uniqueClient, deUniqueClient, link string, log *Log) error
 	ValidatePayload(log *Log, payload *InsertLogPayload) error
+	GenerateCode(uniqueClient string) (string, error)
 }
 
 //-------------------
@@ -90,6 +94,13 @@ type SettingsLog struct {
 	Authenticate    bool   `json:"authenticate"`
 }
 
+type LogQuery struct {
+	ID           int    `json:"id"`
+	Name         string `json:"name"`
+	UniqueClient string `json:"uniqueClient"`
+	CreatedAt    string `json:"timestamp"`
+}
+
 //-------------------
 //-------------------
 // Тип для DTOs
@@ -130,6 +141,10 @@ type CreateLogPayload struct {
 	Router string `json:"router" validate:"required"`
 }
 
+type SettingsLogPayload struct {
+	Settings SettingsLog `json:"settings"`
+}
+
 type InsertLogPayload struct {
 	UniqueClient string              `json:"uniqueClient" validate:"required"`
 	Action       ActionInsertPayload `json:"action"`
@@ -153,7 +168,7 @@ type ActionInsertPayload struct {
 
 //-------------------
 //-------------------
-// Тип для данных
+// Тип для данных *(log.json)
 //-------------------
 type LogStruct struct {
 	Title     string         `json:"Title"`

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/sikozonpc/ecom/services/logs"
 	"github.com/sikozonpc/ecom/services/site"
@@ -54,9 +55,16 @@ func (s *APIServer) Run() error {
 	logsHandler := logs.NewHandler(logsStore, userStore, siteStore)
 	logsHandler.RegisterRoutes(subrouter)
 
+	// -------------------
+	// подключаем CORS
+	// -------------------
+	origins := handlers.AllowedOrigins([]string{"*"})
+	methods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
+	headers := handlers.AllowedHeaders([]string{"Content-Type", "X-Requested-With", "Authorization"})
+
 	// --------------------
 	// Возращяем http ответ
 	// --------------------
 	log.Println("Listening on", s.addr)
-	return http.ListenAndServe(s.addr, router)
+	return http.ListenAndServe(s.addr, handlers.CORS(origins, methods, headers)(router))
 }

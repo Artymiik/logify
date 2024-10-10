@@ -18,13 +18,13 @@ func main() {
 	// Найстрока и подключение к бд
 	// ----------------------
 	db, err := db.NewMySQLStorage(mysql.Config{
-		User: config.Envs.DBUser,
-		Passwd: config.Envs.DBPassword,
-		Addr: config.Envs.DBAddress,
-		DBName: config.Envs.DBName,
-		Net: "tcp",
+		User:                 config.Envs.DBUser,
+		Passwd:               config.Envs.DBPassword,
+		Addr:                 config.Envs.DBAddress,
+		DBName:               config.Envs.DBName,
+		Net:                  "tcp",
 		AllowNativePasswords: true,
-		ParseTime: true,
+		ParseTime:            true,
 	})
 
 	// Вывод ошибки с БД

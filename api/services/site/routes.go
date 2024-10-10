@@ -26,6 +26,7 @@ func NewHandler(store types.SiteStore, userStore types.UserStore) *Handler {
 // -------------------
 func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/create/site", auth.WithJWTAuth(h.handleCreateSite, h.userStore)).Methods("POST")
+	router.HandleFunc("/select/sites", auth.WithJWTAuth(h.handleSelectSites, h.userStore)).Methods("GET")
 }
 
 // -----------------------
@@ -82,4 +83,23 @@ func (h *Handler) handleCreateSite(w http.ResponseWriter, r *http.Request) {
 
 	// отправка пользователю то что все ок
 	utils.WriteJSON(w, http.StatusCreated, "The site has been successfully created!")
+}
+
+// ------------------------------
+// ------------------------------
+// SLECT SITES BU USERID ROUTER
+// ------------------------------
+func (h *Handler) handleSelectSites(w http.ResponseWriter, r *http.Request) {
+	// Получаем id пользователя
+	userID := auth.GetUserIDFromContext(r.Context())
+
+	// получаем все сайты по userID
+	sites, err := h.store.GetSitesByUserID(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// отправка пользователю то что все ок
+	utils.WriteJSON(w, http.StatusOK, sites)
 }

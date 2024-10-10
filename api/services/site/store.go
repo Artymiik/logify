@@ -140,3 +140,40 @@ func (s *Store) GetSiteBySiteID(id int) (*types.Site, error) {
 
 	return site, nil
 }
+
+// ------------------------
+// Функция на получение всех сайтов sites по userID
+// ------------------------
+func (s *Store) GetSitesByUserID(userID int) ([]types.Site, error) {
+	// -----------------------
+	// Выводим данные из БД
+	// -----------------------
+	rows, err := s.db.Query("select * from sites where userId = ?", userID)
+
+	// обработка ошибки
+	if err != nil {
+		return nil, err
+	}
+
+	// Читаем данные
+	// Создаем массив
+	var sites []types.Site
+	site := new(types.Site)
+
+	for rows.Next() {
+		site, err = scanRowIntoSites(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		sites = append(sites, *site)
+	}
+
+	// Проверка что есть сайты
+	if site.ID == 0 {
+		return nil, fmt.Errorf("you don't have any active sites")
+	}
+
+	// Возращаем ответ
+	return sites, nil
+}

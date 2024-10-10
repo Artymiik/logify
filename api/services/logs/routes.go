@@ -28,7 +28,8 @@ func NewHandler(store types.LogsStore, userStore types.UserStore, siteStore type
 // -------------------
 func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/{site}/create/log", auth.WithJWTAuth(h.handleCreateLog, h.userStore)).Methods("POST")
-	router.HandleFunc("/{site}/{log}/settings", auth.WithJWTAuth(h.handleSettingsLog, h.userStore)).Methods("POST")
+	router.HandleFunc("/{site}/{log}/settings", auth.WithJWTAuth(h.handleSettingsLog, h.userStore)).Methods("GET")
+	router.HandleFunc("/{site}/{log}/settings/set", auth.WithJWTAuth(h.handleSettingsLogSet, h.userStore)).Methods("PUT")
 	router.HandleFunc("/{site}/{log}/delete", auth.WithJWTAuth(h.handleDeleteLog, h.userStore)).Methods("POST")
 	router.HandleFunc("/{site}/logs", auth.WithJWTAuth(h.handleSelectLogs, h.userStore)).Methods("GET") // Вывод logs по siteID
 	router.HandleFunc("/{site}/{log}", auth.WithJWTAuth(h.handleSelectLogById, h.userStore)).Methods("GET")
@@ -134,7 +135,50 @@ func (h *Handler) handleCreateLog(w http.ResponseWriter, r *http.Request) {
 // SETTINGS LOGS SITE ROUTER
 // ------------------------------
 func (h *Handler) handleSettingsLog(w http.ResponseWriter, r *http.Request) {
-	utils.WriteJSON(w, http.StatusOK, "OK")
+	// получаем name log из url
+	vars := mux.Vars(r)
+	logName := vars["log"]
+
+	// получаем настройки log из БД по logName
+	setting, err := h.store.GetLogByName(logName)
+
+	// обработка ошибки
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// отправляем пользователю настройки log
+	utils.WriteJSON(w, http.StatusOK, setting)
+}
+
+func (h *Handler) handleSettingsLogSet(w http.ResponseWriter, r *http.Request) {
+	// получаем из URL log name
+	var vars = mux.Vars(r)
+	logName := vars["log"]
+
+	// получаем данные от пользователя
+	var payload *types.SettingsLogPayload
+
+	// Отправляем пользователю ошибку, что не все поля заполнены
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+	}
+
+	// Валидация данных от пользователя
+	if err := utils.Validate.Struct(payload); err != nil {
+		errors := err.(validator.ValidationErrors)
+		utils.WriteError(w, http.StatusBadRequest, errors)
+		return
+	}
+
+	// Обновление данных в БД
+	if err := h.store.UpdateSettingsLog(payload, logName); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, "the log settings have been changed")
 }
 
 // ------------------------------
@@ -150,21 +194,25 @@ func (h *Handler) handleDeleteLog(w http.ResponseWriter, r *http.Request) {
 // SELECTED ALL LOGS SITE ROUTER
 // ------------------------------
 func (h *Handler) handleSelectLogs(w http.ResponseWriter, r *http.Request) {
+	// получаем из url site
 	vars := mux.Vars(r)
 	siteName := vars["site"]
 
+	// получаем siteID из БД
 	siteID, err := h.siteStore.GetSiteByName(siteName)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
+	// получаем все logs из БД по siteID
 	logs, err := h.store.SelectLogs(siteID.ID)
 	if err != nil {
 		utils.WriteError(w, http.StatusNotFound, err)
 		return
 	}
 
+	// ответ пользователю
 	utils.WriteJSON(w, http.StatusOK, logs)
 }
 
@@ -173,7 +221,37 @@ func (h *Handler) handleSelectLogs(w http.ResponseWriter, r *http.Request) {
 // SELECTED LOG BY ID ROUTER
 // ------------------------------
 func (h *Handler) handleSelectLogById(w http.ResponseWriter, r *http.Request) {
-	utils.WriteJSON(w, http.StatusOK, "OK")
+	// получаем из url log name
+	vars := mux.Vars(r)
+	logName := vars["log"]
+
+	// получаем определенный log из БД по logName
+	log, err := h.store.GetLogByName(logName)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// создания структуры для возврата значений
+	type Response struct {
+		Log  types.Log `json:"log"`
+		Code string    `json:"code"`
+	}
+
+	// Генерация кода для пользователя
+	code, err := h.store.GenerateCode(string(log.UniqueClient))
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	response := Response{
+		Log:  *log,
+		Code: code,
+	}
+
+	// ответ пользователю
+	utils.WriteJSON(w, http.StatusOK, response)
 }
 
 // ------------------------------

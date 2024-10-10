@@ -89,11 +89,11 @@ func (s *Store) CreateDefaultLog(log types.Log) error {
 // -----------------------
 // Функция вывода всех log по siteID
 // -----------------------
-func (s *Store) SelectLogs(id int) ([]types.Log, error) {
+func (s *Store) SelectLogs(id int) ([]types.LogQuery, error) {
 	// -----------------------
 	// Выводим данные из БД
 	// -----------------------
-	rows, err := s.db.Query("select * from logs where siteId = ?", id)
+	rows, err := s.db.Query("select id, name, uniqueClient, createdAt from logs where siteId = ?", id)
 
 	// обработка ошибки
 	if err != nil {
@@ -102,12 +102,12 @@ func (s *Store) SelectLogs(id int) ([]types.Log, error) {
 
 	// Читаем данные
 	// Создаем массив
-	var logs []types.Log
-	log := new(types.Log)
+	var logs []types.LogQuery
+	log := new(types.LogQuery)
 
 	// цикл для данных
 	for rows.Next() {
-		log, err = ScanRowIntoLogs(rows)
+		err := rows.Scan(&log.ID, &log.Name, &log.UniqueClient, &log.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -116,12 +116,48 @@ func (s *Store) SelectLogs(id int) ([]types.Log, error) {
 	}
 
 	// Проверка что есть логи
-	if log.ID == 0 {
+	if len(logs) == 0 {
 		return nil, fmt.Errorf("you don't have any active logs")
 	}
 
 	// Возращаем ответ
 	return logs, nil
+}
+
+// ------------------------
+// -----------------------
+// Функция определенноголога по logName
+// -----------------------
+func (s *Store) GetLogByName(name string) (*types.Log, error) {
+	// -----------------------
+	// Выводим данные из БД
+	// -----------------------
+	rows, err := s.db.Query("select * from logs where name = ?", name)
+
+	// обработка ошибки
+	if err != nil {
+		return nil, err
+	}
+
+	// Читаем данные
+	// Создаем массив
+	log := new(types.Log)
+
+	// цикл для данных
+	for rows.Next() {
+		log, err = ScanRowIntoLogs(rows)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Проверка что есть логи
+	if log.ID == 0 {
+		return nil, fmt.Errorf("you don't have any active logs")
+	}
+
+	// Возращаем ответ
+	return log, nil
 }
 
 // ------------------------
@@ -169,6 +205,34 @@ func (s *Store) GetLog(uniqueClient string) (*types.Log, error) {
 
 	// Возвращаем результат
 	return settings, nil
+}
+
+// ------------------------
+// -----------------------
+// Функция обновления настроек лога
+// -----------------------
+func (s *Store) UpdateSettingsLog(settings *types.SettingsLogPayload, logName string) error {
+	// Запрос на изменение настроек лога
+	_, err := s.db.Exec(`
+	update logs set
+	url = ?, methods = ?,
+	statusCode = ?, responseMessage = ?,
+	description = ?, ipAddress = ?,
+	gps = ?, username = ?,
+	email = ?, cookie = ?,
+	localStorage = ?, session = ?,
+	authenticate = ? where name = ?`,
+		settings.Settings.URL, settings.Settings.Methods, settings.Settings.StatusCode,
+		settings.Settings.ResponseMessage, settings.Settings.Description, settings.Settings.IPAddress,
+		settings.Settings.GPS, settings.Settings.UserName, settings.Settings.Email, settings.Settings.Cookie,
+		settings.Settings.LocalStorage, settings.Settings.Session, settings.Settings.Authenticate, logName)
+
+	// обработка ошибки
+	if err != nil {
+		return fmt.Errorf("error in log settings")
+	}
+
+	return nil
 }
 
 type LogData struct {
@@ -321,7 +385,7 @@ func (s *Store) ReturnsInsertPayload(uniqueClient, link string, log *types.Log) 
 		},
 	}
 
-	// Возвращяем результат
+	// Возвращаем результат
 	return JSON_LOG_DATA, nil
 }
 
@@ -436,4 +500,92 @@ func (s *Store) ValidatePayload(log *types.Log, payload *types.InsertLogPayload)
 	}
 
 	return nil
+}
+
+// -----------------------
+// -----------------------
+// Функция для генерации кода для пользователя
+// -----------------------
+func (s *Store) GenerateCode(uniqueClient string) (string, error) {
+	// инициализация строки
+	logConnect := "log.insert(connect, {"
+
+	// Получения настроек лога
+	settings, err := s.GetLog(uniqueClient)
+	if err != nil {
+		return "", err
+	}
+
+	// Проверка settings данных на true || false
+	// Формирование строки
+	if settings.Settings.StatusCode {
+		logConnect += "\n StatusCode: 200"
+	} else {
+		logConnect += ""
+	}
+
+	if settings.Settings.ResponseMessage {
+		logConnect += ",\n ResponseMessage: 'This is server response'"
+	} else {
+		logConnect += ""
+	}
+
+	if settings.Settings.Description {
+		logConnect += ",\n Description: 'This is a description'"
+	} else {
+		logConnect += ""
+	}
+
+	if settings.Settings.IPAddress {
+		logConnect += ",\n IPAddress: getIPAddress()"
+	} else {
+		logConnect += ""
+	}
+
+	if settings.Settings.GPS {
+		logConnect += ",\n GPS: getGPS()"
+	} else {
+		logConnect += ""
+	}
+
+	if settings.Settings.UserName {
+		logConnect += ",\n UserName: 'UserName'"
+	} else {
+		logConnect += ""
+	}
+
+	if settings.Settings.Email {
+		logConnect += ",\n Email: 'test@test.com'"
+	} else {
+		logConnect += ""
+	}
+
+	if settings.Settings.Cookie {
+		logConnect += ",\n Cookie: 'Hello, Cookie!'"
+	} else {
+		logConnect += ""
+	}
+
+	if settings.Settings.LocalStorage {
+		logConnect += ",\n LocalStorage: 'Hello, LocalStorage!'"
+	} else {
+		logConnect += ""
+	}
+
+	if settings.Settings.Session {
+		logConnect += ",\n Session: 'Hello, Session!'"
+	} else {
+		logConnect += ""
+	}
+
+	if settings.Settings.Authenticate {
+		logConnect += ",\n Authenticate: 'This is user auth'"
+	} else {
+		logConnect += ""
+	}
+
+	logConnect += "\n})"
+
+	// Возвращаем строку
+	return logConnect, nil
 }

@@ -11,9 +11,9 @@ import (
 
 	"path/filepath"
 
-	"github.com/sikozonpc/ecom/services/check"
-	"github.com/sikozonpc/ecom/types"
-	"github.com/sikozonpc/ecom/utils"
+	"github.com/Artymiik/logify/services/check"
+	"github.com/Artymiik/logify/types"
+	"github.com/Artymiik/logify/utils"
 )
 
 type Store struct {
@@ -126,7 +126,7 @@ func (s *Store) SelectLogs(id int) ([]types.LogQuery, error) {
 
 // ------------------------
 // -----------------------
-// Функция определенноголога по logName
+// Функция определенного лога по logName
 // -----------------------
 func (s *Store) GetLogByName(name string) (*types.Log, error) {
 	// -----------------------
@@ -442,7 +442,8 @@ func (s *Store) InsertIntoFileLog(uniqueClient, deUniqueClient, link string, log
 
 // -----------------------
 // -----------------------
-// Функция для записи данных в log
+// Валидация настроек лога +
+// сохранение в переменную настроек
 // -----------------------
 func (s *Store) ValidatePayload(log *types.Log, payload *types.InsertLogPayload) error {
 	if log.Settings.StatusCode && payload.Action.StatusCode == "" || !log.Settings.StatusCode && payload.Action.StatusCode != "" {

@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Artymiik/logify/config"
+	"github.com/Artymiik/logify/interfaces"
+	"github.com/Artymiik/logify/utils"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/sikozonpc/ecom/config"
-	"github.com/sikozonpc/ecom/types"
-	"github.com/sikozonpc/ecom/utils"
 )
 
 type contextKey string
@@ -48,7 +48,7 @@ func CreateJwt(secret []byte, userId int) (string, error) {
 	return tokenString, nil
 }
 
-func WithJWTAuth(handlerFunc http.HandlerFunc, store types.UserStore) http.HandlerFunc {
+func WithJWTAuth(handlerFunc http.HandlerFunc, store interfaces.IUser) http.HandlerFunc {
 	return func (w http.ResponseWriter, r *http.Request) {
 		// ------------------------
 		// ------------------------

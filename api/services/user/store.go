@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/sikozonpc/ecom/types"
+	"github.com/Artymiik/logify/types"
 )
 
 type Store struct {

@@ -16,8 +16,6 @@ interface context {
   ) => void;
 }
 
-
-
 // инициализация контекста
 // =======================
 const SignupContext = React.createContext<context>({
@@ -48,6 +46,7 @@ export const SignupProvider = ({ children }: any) => {
     setShowErrorApp(setProperty1);
     setResponseServer(setProperty2);
     setStatusCode(setProperty3);
+    setLoader(false);
   };
 
   // Работа с сервером + получения результата

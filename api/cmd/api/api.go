@@ -7,9 +7,9 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/sikozonpc/ecom/services/logs"
-	"github.com/sikozonpc/ecom/services/site"
-	"github.com/sikozonpc/ecom/services/user"
+	"github.com/Artymiik/logify/services/logs"
+	"github.com/Artymiik/logify/services/site"
+	"github.com/Artymiik/logify/services/user"
 )
 
 type APIServer struct {

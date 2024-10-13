@@ -4,19 +4,20 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Artymiik/logify/config"
+	"github.com/Artymiik/logify/interfaces"
+	"github.com/Artymiik/logify/services/auth"
+	"github.com/Artymiik/logify/types"
+	"github.com/Artymiik/logify/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
-	"github.com/sikozonpc/ecom/config"
-	"github.com/sikozonpc/ecom/services/auth"
-	"github.com/sikozonpc/ecom/types"
-	"github.com/sikozonpc/ecom/utils"
 )
 
 type Handler struct {
-	store types.UserStore
+	store interfaces.IUser
 }
 
-func NewHandler(store types.UserStore) *Handler {
+func NewHandler(store interfaces.IUser) *Handler {
 	return &Handler{store: store}
 }
 

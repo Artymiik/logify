@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/sikozonpc/ecom/types"
+	"github.com/Artymiik/logify/types"
 )
 
 type Store struct {
@@ -88,7 +88,7 @@ func (s *Store) GetSiteByName(name string) (*types.Site, error) {
 }
 
 // ------------------------
-// Функция на получение данных sites по userID
+// Функция на получение данных sites по ID
 // ------------------------
 func (s *Store) GetSiteById(id int) (*types.Site, error) {
 	// Выводим данные из БД

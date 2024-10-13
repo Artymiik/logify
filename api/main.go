@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/Artymiik/logify/cmd/api"
+	"github.com/Artymiik/logify/config"
+	"github.com/Artymiik/logify/db"
 	"github.com/go-sql-driver/mysql"
-	"github.com/sikozonpc/ecom/cmd/api"
-	"github.com/sikozonpc/ecom/config"
-	"github.com/sikozonpc/ecom/db"
 )
 
 // -------------------

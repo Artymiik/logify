@@ -4,12 +4,12 @@ import (
 	"log"
 	"os"
 
+	"github.com/Artymiik/logify/config"
+	"github.com/Artymiik/logify/db"
 	mysqlCfg "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/sikozonpc/ecom/config"
-	"github.com/sikozonpc/ecom/db"
 )
 
 // ---------------------------

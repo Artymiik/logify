@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useSignupContext } from "../context/SignupContext";
 import ErrorWindow from "../components/ErrorWindow";
+import Loader from "../components/Loader/Loader";
 
 export const Signup = () => {
   const [firstName, setFirstName] = React.useState<string>("");
@@ -78,10 +79,10 @@ export const Signup = () => {
                     />
                   </div>
                   <button
-                    className="bg-[#091a10] text-[#fff] my-5 mb-4 rounded-3xl py-3 px-5 hover:bg-[#0e2c1a] transition"
+                    className="w-[110px] flex justify-center bg-[#091a10] text-[#fff] my-5 mb-4 rounded-3xl py-3 px-5 hover:bg-[#0e2c1a] transition"
                     onClick={signupSubmit}
                   >
-                    Sign up Here
+                    {loader ? <Loader /> : "Sign up Here"}
                   </button>
                 </div>
                 <div>

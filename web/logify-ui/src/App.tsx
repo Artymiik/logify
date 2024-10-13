@@ -5,6 +5,8 @@ import { SignupProvider } from "./context/SignupContext";
 import { WebListProvider } from "./context/WebListContext";
 import * as pages from "./pages/export.page.config";
 import { createBrowserRouter } from "react-router-dom";
+import ProtectedRouter from "./ProtectedRouter";
+import { CreateWebProvider } from "./context/CreateWebContext";
 
 const App = createBrowserRouter([
   {
@@ -13,9 +15,13 @@ const App = createBrowserRouter([
       {
         path: "",
         element: (
-          <WebListProvider>
-            <pages.index />
-          </WebListProvider>
+          <ProtectedRouter>
+            <WebListProvider>
+              <CreateWebProvider>
+                <pages.index />
+              </CreateWebProvider>
+            </WebListProvider>
+          </ProtectedRouter>
         ),
       },
       {
@@ -37,29 +43,41 @@ const App = createBrowserRouter([
       {
         path: "dashboard/:siteName",
         element: (
-          <WebListProvider>
-            <pages.dashboard_logs />
-          </WebListProvider>
+          <ProtectedRouter>
+            <WebListProvider>
+              <CreateWebProvider>
+                <pages.dashboard_logs />
+              </CreateWebProvider>
+            </WebListProvider>
+          </ProtectedRouter>
         ),
       },
       {
         path: "dashboard/:siteName/:logName",
         element: (
-          <WebListProvider>
-            <LogDetailsProvider>
-              <pages.dashboard_log />
-            </LogDetailsProvider>
-          </WebListProvider>
+          <ProtectedRouter>
+            <WebListProvider>
+              <CreateWebProvider>
+                <LogDetailsProvider>
+                  <pages.dashboard_log />
+                </LogDetailsProvider>
+              </CreateWebProvider>
+            </WebListProvider>
+          </ProtectedRouter>
         ),
       },
       {
         path: "dashboard/:siteName/:logName/settings",
         element: (
-          <WebListProvider>
-            <SettingsProvider>
-              <pages.settings />
-            </SettingsProvider>
-          </WebListProvider>
+          <ProtectedRouter>
+            <WebListProvider>
+              <CreateWebProvider>
+                <SettingsProvider>
+                  <pages.settings />
+                </SettingsProvider>
+              </CreateWebProvider>
+            </WebListProvider>
+          </ProtectedRouter>
         ),
       },
     ],

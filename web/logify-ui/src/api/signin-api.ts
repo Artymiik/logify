@@ -20,12 +20,22 @@ export const signinAPI = async (email: string, password: string) => {
       status: response.status,
       data: response.data,
     };
-  } catch {
+  } catch (error: any) {
     // Возвращяем результат об ошибке сервера
     // ======================================
-    return {
-      status: 500,
-      data: "Server error, please try again",
-    };
+    if (error.response) {
+      // Ошибка от сервера
+      return {
+        status: error.response.status,
+        data: error.response.data,
+      };
+    } else {
+      return {
+        status: 500,
+        data: {
+          error: "Server error, please try again",
+        },
+      };
+    }
   }
 };

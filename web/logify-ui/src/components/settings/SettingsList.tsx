@@ -37,11 +37,7 @@ const SettingsList = () => {
   return (
     <>
       {showErrorWindow && (
-        <ErrorWindow
-          showError={showErrorWindow}
-          status_code={statusCode}
-          message={responseServer}
-        />
+        <ErrorWindow status_code={statusCode} message={responseServer} />
       )}
 
       {/* Навигация */}

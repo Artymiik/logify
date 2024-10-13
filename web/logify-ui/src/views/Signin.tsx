@@ -2,10 +2,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useSigninContext } from "../context/SigninContext";
 import ErrorWindow from "../components/ErrorWindow";
+import Loader from "../components/Loader/Loader";
 
 const Signin = () => {
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
+  const [email, setEmail] = React.useState<string>("");
+  const [password, setPassword] = React.useState<string>("");
 
   const { responseServer, statusCode, loader, showErrorApp, handleSignin } =
     useSigninContext();
@@ -57,10 +58,10 @@ const Signin = () => {
                     />
                   </div>
                   <button
-                    className="bg-[#091a10] text-[#fff] my-5 mb-10 rounded-3xl py-3 px-5 hover:bg-[#0e2c1a] transition"
+                    className="w-[110px] flex justify-center bg-[#091a10] text-[#fff] my-5 mb-10 rounded-3xl py-3 px-5 hover:bg-[#0e2c1a] transition"
                     onClick={signinSubmit}
                   >
-                    Sign in Here
+                    {loader ? <Loader /> : "Sign in Here"}
                   </button>
                 </div>
                 <div>

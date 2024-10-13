@@ -2,36 +2,6 @@ package types
 
 import "time"
 
-// --------------------
-// --------------------
-// Interfaces Stores
-// --------------------
-type UserStore interface {
-	GetUserByEmail(email string) (*User, error)
-	GetUserById(id int) (*User, error)
-	CreateUser(User) error
-}
-
-type SiteStore interface {
-	CreateSite(Site) error
-	GetSiteByName(name string) (*Site, error)
-	GetSiteById(id int) (*Site, error)
-	GetSiteBySiteID(id int) (*Site, error)
-	GetSitesByUserID(userID int) ([]Site, error)
-}
-
-type LogsStore interface {
-	CreateDefaultLog(Log) error
-	GetLogByName(name string) (*Log, error)
-	SelectLogs(id int) ([]LogQuery, error)
-	CreateLogFile(name, string string, siteId int) error
-	GetLog(uniqueClient string) (*Log, error)
-	UpdateSettingsLog(settings *SettingsLogPayload, logName string) error
-	InsertIntoFileLog(uniqueClient, deUniqueClient, link string, log *Log) error
-	ValidatePayload(log *Log, payload *InsertLogPayload) error
-	GenerateCode(uniqueClient string) (string, error)
-}
-
 //-------------------
 //-------------------
 // Тип для возращений в функциях

@@ -42,6 +42,7 @@ export const SigninProvider = ({ children }: any) => {
     setShowErrorApp(setProperty1);
     setResponseServer(setProperty2);
     setStatusCode(setProperty3);
+    setLoader(false);
   };
 
   // Раота с сервером + получения результата

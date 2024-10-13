@@ -11,9 +11,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 
+	"github.com/Artymiik/logify/config"
+	"github.com/Artymiik/logify/types"
 	"github.com/go-playground/validator/v10"
-	"github.com/sikozonpc/ecom/config"
-	"github.com/sikozonpc/ecom/types"
 )
 
 // -----------------
@@ -112,7 +112,7 @@ func Decrypt(encodedCiphertext string) (string, error) {
 	// Создание блочного режима шифрования CBC
 	gsm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", fmt.Errorf("ошибка создания блочного режима шифрования")
+		return "", fmt.Errorf("error creating block encryption mode")
 	}
 
 	// Расшифровка данных

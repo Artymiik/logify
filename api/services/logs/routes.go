@@ -6,20 +6,21 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Artymiik/logify/interfaces"
+	"github.com/Artymiik/logify/services/auth"
+	"github.com/Artymiik/logify/types"
+	"github.com/Artymiik/logify/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
-	"github.com/sikozonpc/ecom/services/auth"
-	"github.com/sikozonpc/ecom/types"
-	"github.com/sikozonpc/ecom/utils"
 )
 
 type Handler struct {
-	store     types.LogsStore
-	userStore types.UserStore
-	siteStore types.SiteStore
+	store     interfaces.ILogs
+	userStore interfaces.IUser
+	siteStore interfaces.ISite
 }
 
-func NewHandler(store types.LogsStore, userStore types.UserStore, siteStore types.SiteStore) *Handler {
+func NewHandler(store interfaces.ILogs, userStore interfaces.IUser, siteStore interfaces.ISite) *Handler {
 	return &Handler{store: store, userStore: userStore, siteStore: siteStore}
 }
 

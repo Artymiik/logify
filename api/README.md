@@ -1,12 +1,10 @@
-*Подумать над auth то есть :
-Если пользователь на сайте то делать регестрацию и вход
-А если через cmd?
-
-- Думаю можно на сайте генерировать url и в cmd передовать его чтобы н регестрироваться
-
 # React + TypeScript + Vite (client + logify-react)
 
+-- href vercel
+
 # GOLANG + MySQL (server)
+
+https://logify-production.up.railway.app/api/v1
 
 # Link web-site:
 
@@ -34,6 +32,7 @@ Currently, two official plugins are available:
 - npm run dev -- --host=ip-address (start client in ip-address:port)
 
 **NPM logify-react**
+
 - npm i logify-react
 
 **Start Server**

@@ -36,12 +36,12 @@ func initConfig() Config {
 	// Данные для работы с БД
 	// ------------------
 	return Config{
-		PublicHost:             getEnv("PUBLIC_HOST", "junction.proxy.rlwy.net"), // mysql.railway.internal  http://localhost
-		Port:                   getEnv("PORT", "3306"), // 3306   8080
-		DBUser:                 getEnv("DBU_USER", "root"), // root  root
-		DBPassword:             getEnv("DB_PASSWORD", "cBdebQpIKwdZjjuwGoeigaJaIvnZjCtJ"), // cBdebQpIKwdZjjuwGoeigaJaIvnZjCtJ   password
-		DBAddress:              fmt.Sprintf("%s:%s", getEnv("DB_HOST", "junction.proxy.rlwy.net"), getEnv("DB_PORT", "14617")),  // 127.0.0.1  3306
-		DBName:                 getEnv("DB_NAME", "railway"), // railway   logify
+		PublicHost:             getEnv("PUBLIC_HOST", "autorack.proxy.rlwy.net"),                                               // mysql.railway.internal  http://localhost
+		Port:                   getEnv("PORT", "3306"),                                                                         // 3306   8080
+		DBUser:                 getEnv("DBU_USER", "root"),                                                                     // root  root
+		DBPassword:             getEnv("DB_PASSWORD", "mIRdwqeeczlTjSJYylZhkLKISfNbfgqm"),                                      // cBdebQpIKwdZjjuwGoeigaJaIvnZjCtJ   password
+		DBAddress:              fmt.Sprintf("%s:%s", getEnv("DB_HOST", "autorack.proxy.rlwy.net"), getEnv("DB_PORT", "25792")), // 127.0.0.1  3306
+		DBName:                 getEnv("DB_NAME", "railway"),                                                                   // railway   logify
 		JWTExpirationInSeconds: getEnvAsInt("JWT_EXP", 3600*24*7),
 		JWTSecret:              getEnv("JWT_SECRET", "_logify_-secret-_token_-!2024!-envs."),
 		SUPER_SECRET_KEY:       getEnv("SUPER_SECRET_KEY", "abc&1*~#^2^#s0^=)^^7%b34"),

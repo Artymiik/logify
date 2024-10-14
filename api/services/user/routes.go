@@ -25,7 +25,9 @@ func NewHandler(store interfaces.IUser) *Handler {
 // Функция для определения routers
 // -------------------
 func (h *Handler) RegisterRoutes(router *mux.Router) {
+	// вход
 	router.HandleFunc("/signin", h.handleLogin).Methods("POST")
+	// регестрация
 	router.HandleFunc("/signup", h.handleRegister).Methods("POST")
 }
 

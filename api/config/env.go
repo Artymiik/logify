@@ -36,12 +36,12 @@ func initConfig() Config {
 	// Данные для работы с БД
 	// ------------------
 	return Config{
-		PublicHost:             getEnv("PUBLIC_HOST", "http://localhost"),
-		Port:                   getEnv("PORT", "8080"),
-		DBUser:                 getEnv("DBU_USER", "root"),
-		DBPassword:             getEnv("DB_PASSWORD", "password"),
-		DBAddress:              fmt.Sprintf("%s:%s", getEnv("DB_HOST", "127.0.0.1"), getEnv("DB_PORT", "3306")),
-		DBName:                 getEnv("DB_NAME", "logify"),
+		PublicHost:             getEnv("PUBLIC_HOST", "mysql.railway.internal"), // mysql.railway.internal  http://localhost
+		Port:                   getEnv("PORT", "3306"), // 3306   8080
+		DBUser:                 getEnv("DBU_USER", "root"), // root  root
+		DBPassword:             getEnv("DB_PASSWORD", "eznWLwjZuHrqvgvPoazqcpEXqSvDyzhI"), // eznWLwjZuHrqvgvPoazqcpEXqSvDyzhI   password
+		DBAddress:              fmt.Sprintf("%s:%s", getEnv("DB_HOST", "mysql.railway.internal"), getEnv("DB_PORT", "3306")),  // 127.0.0.1  3306
+		DBName:                 getEnv("DB_NAME", "railway"), // railway   logify
 		JWTExpirationInSeconds: getEnvAsInt("JWT_EXP", 3600*24*7),
 		JWTSecret:              getEnv("JWT_SECRET", "_logify_-secret-_token_-!2024!-envs."),
 		SUPER_SECRET_KEY:       getEnv("SUPER_SECRET_KEY", "abc&1*~#^2^#s0^=)^^7%b34"),

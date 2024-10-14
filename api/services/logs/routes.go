@@ -28,15 +28,26 @@ func NewHandler(store interfaces.ILogs, userStore interfaces.IUser, siteStore in
 // Функция для определения routers
 // -------------------
 func (h *Handler) RegisterRoutes(router *mux.Router) {
+	// создание лога
 	router.HandleFunc("/{site}/create/log", auth.WithJWTAuth(h.handleCreateLog, h.userStore)).Methods("POST")
+	// получение настроек лога
 	router.HandleFunc("/{site}/{log}/settings", auth.WithJWTAuth(h.handleSettingsLog, h.userStore)).Methods("GET")
+	// обновление настроек лога
 	router.HandleFunc("/{site}/{log}/settings/set", auth.WithJWTAuth(h.handleSettingsLogSet, h.userStore)).Methods("PUT")
+	// удаление лога
 	router.HandleFunc("/{site}/{log}/delete", auth.WithJWTAuth(h.handleDeleteLog, h.userStore)).Methods("POST")
+	// получение всех логов по {site}
 	router.HandleFunc("/{site}/logs", auth.WithJWTAuth(h.handleSelectLogs, h.userStore)).Methods("GET") // Вывод logs по siteID
+	// получение определенного лога по {name}
 	router.HandleFunc("/{site}/{log}", auth.WithJWTAuth(h.handleSelectLogById, h.userStore)).Methods("GET")
+	// скачивание лога по {name}
 	router.HandleFunc("/{site}/{log}/download", auth.WithJWTAuth(h.handleDownloadLog, h.userStore)).Methods("GET")
+	// вывод клиенту содержимого лога
+	router.HandleFunc("/{site}/{log}/log", auth.WithJWTAuth(h.handleSelectDetailsLog, h.userStore)).Methods("GET")
 
+	// запись данных в лог NPM
 	router.HandleFunc("/insert", h.handleInsertLog).Methods("POST")
+	// вывод клиенту содержимого лога NPM
 	router.HandleFunc("/select/{log}", h.handleSelectLog).Methods("GET")
 }
 
@@ -265,6 +276,33 @@ func (h *Handler) handleDownloadLog(w http.ResponseWriter, r *http.Request) {
 
 // ------------------------------
 // ------------------------------
+// ВЫВОД СОДЕРЖИМОГО ЛОГА
+// ------------------------------
+func (h *Handler) handleSelectDetailsLog(w http.ResponseWriter, r *http.Request) {
+	// получаем из URL log name
+	vars := mux.Vars(r)
+	logName := vars["log"]
+
+	// Получаем id пользователя
+	var userId = auth.GetUserIDFromContext(r.Context())
+	// Получаем пользователя
+	u, err := h.userStore.GetUserById(userId)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	data, err := h.store.DetailsLog(u.Email, logName)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, data)
+}
+
+// ------------------------------
+// ------------------------------
 // INSERT LOG NPM ROUTER
 // ------------------------------
 func (h *Handler) handleInsertLog(w http.ResponseWriter, r *http.Request) {
@@ -298,7 +336,7 @@ func (h *Handler) handleInsertLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получения данных для дальнейшиз действий
+	// Получения данных для дальнейших действий
 	log, err := h.store.GetLog(payload.UniqueClient)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)

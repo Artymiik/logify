@@ -1,0 +1,68 @@
+[
+  {
+    "Title": "auth-log",
+    "TimeStamp": "2024-09-29 17:14:58",
+    "Client": {
+      "URL": "https://artemiik-portfolio.vercel.app/signup",
+      "Methods": "HEAD"
+    },
+    "Server": {
+      "StatusCode": "StatusCode",
+      "ResponseMessage": "ResponseMessage"
+    },
+    "Details": {
+      "Description": "",
+      "IPAddress": "",
+      "GPS": "",
+      "UserName": "",
+      "Email": "",
+      "Cookie": "",
+      "Session": "",
+      "Authenticate": ""
+    }
+  },
+  {
+    "Title": "auth-log",
+    "TimeStamp": "2024-10-04 15:15:07",
+    "Client": {
+      "URL": "https://artemiik-portfolio.vercel.app/signup",
+      "Methods": ""
+    },
+    "Server": {
+      "StatusCode": "200",
+      "ResponseMessage": "email is exists"
+    },
+    "Details": {
+      "Description": "",
+      "IPAddress": "",
+      "GPS": "",
+      "UserName": "",
+      "Email": "",
+      "Cookie": "",
+      "Session": "",
+      "Authenticate": ""
+    }
+  },
+  {
+    "Title": "auth-log",
+    "TimeStamp": "2024-10-04 15:16:23",
+    "Client": {
+      "URL": "https://artemiik-portfolio.vercel.app/signup",
+      "Methods": ""
+    },
+    "Server": {
+      "StatusCode": "500",
+      "ResponseMessage": "This is library!!!"
+    },
+    "Details": {
+      "Description": "",
+      "IPAddress": "",
+      "GPS": "",
+      "UserName": "",
+      "Email": "",
+      "Cookie": "",
+      "Session": "",
+      "Authenticate": ""
+    }
+  }
+]

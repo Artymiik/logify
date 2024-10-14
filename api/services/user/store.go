@@ -3,6 +3,7 @@ package user
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/Artymiik/logify/types"
 )
@@ -15,6 +16,31 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{
 		db: db,
 	}
+}
+
+// ------------------
+// Пробегаемся по данным user
+// ------------------
+func scanRowIntoUser(rows *sql.Rows) (*types.User, error) {
+	user := new(types.User)
+
+	err := rows.Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.UserName,
+		&user.UserNameUpper,
+		&user.Email,
+		&user.EmailUpper,
+		&user.Password,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 // ---------------------
@@ -50,28 +76,6 @@ func (s *Store) GetUserByEmail(email string) (*types.User, error) {
 	}
 
 	return u, nil
-}
-
-// ------------------
-// Пробегаемся по данным user
-// ------------------
-func scanRowIntoUser(rows *sql.Rows) (*types.User, error) {
-	user := new(types.User)
-
-	err := rows.Scan(
-		&user.ID,
-		&user.FirstName,
-		&user.LastName,
-		&user.Email,
-		&user.Password,
-		&user.CreatedAt,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
 }
 
 // ------------------------
@@ -111,10 +115,11 @@ func (s *Store) GetUserById(id int) (*types.User, error) {
 // Создание пользователя
 // ------------------------
 func (s *Store) CreateUser(user types.User) error {
+	username := fmt.Sprintf("%s %s", user.FirstName, user.LastName)
 	// ---------------------------
 	// запрос к БД на создания пользователя
 	// ---------------------------
-	_, err := s.db.Exec("insert into users (firstName, lastName, email, password) VALUES (?, ?, ?, ?)", user.FirstName, user.LastName, user.Email, user.Password)
+	_, err := s.db.Exec("insert into users (firstName, lastName, username, username_upper, email, email_upper, password) VALUES (?, ?, ?, ?, ?, ?, ?)", user.FirstName, user.LastName, username, strings.ToUpper(username), user.Email, strings.ToUpper(user.Email), user.Password)
 
 	// ---------------------
 	// Обработка ошибки БД

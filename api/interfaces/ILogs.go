@@ -57,4 +57,10 @@ type ILogs interface {
 	// Функция для генерации кода для пользователя
 	// -----------------------
 	GenerateCode(uniqueClient string) (string, error)
+
+	// -----------------------
+	// -----------------------
+	// Получение детальных данных лога
+	// -----------------------
+	DetailsLog(email, logName string) (string, error)
 }

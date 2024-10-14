@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -31,6 +32,8 @@ func NewStore(db *sql.DB) *Store {
 var payloadLog map[string]interface{} = map[string]interface{}{
 	"": "",
 }
+
+var detailsLog map[string]interface{} = map[string]interface{}{}
 
 // ------------------------
 // ------------------------
@@ -256,14 +259,8 @@ func (s *Store) CreateLogFile(name, email string, siteId int) error {
 		return err
 	}
 
-	// Получаем сколько всего логов созданно у сайта
-	numberLog, err := s.CountLog(siteId)
-	if err != nil {
-		return err
-	}
-
 	// Указываем на папку и файл
-	logName := fmt.Sprintf("log-%s[%s]-%v.json", encryptUserData, encryptName, numberLog+1)
+	logName := fmt.Sprintf("log-%s[%s].json", encryptUserData, encryptName)
 	tempDir, err := filepath.Abs("temp/")
 	if err != nil {
 		return fmt.Errorf("error getting the absolute path")
@@ -406,12 +403,6 @@ func (s *Store) InsertIntoFileLog(uniqueClient, deUniqueClient, link string, log
 		return fmt.Errorf("json conversion error")
 	}
 
-	// Получаем сколько всего логов созданно у сайта
-	count, err := s.CountLog(log.SiteID)
-	if err != nil {
-		return err
-	}
-
 	// Получаем данные из uniqueClient
 	email, err := utils.Encrypt(strings.Split(deUniqueClient, "-")[0])
 	if err != nil {
@@ -423,7 +414,7 @@ func (s *Store) InsertIntoFileLog(uniqueClient, deUniqueClient, link string, log
 	}
 
 	// Формируем имя файла
-	fileName := fmt.Sprintf("temp/log-%s[%s]-%v.json", email, logName, count)
+	fileName := fmt.Sprintf("temp/log-%s[%s].json", email, logName)
 
 	// Открываем файл для записи
 	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
@@ -438,6 +429,69 @@ func (s *Store) InsertIntoFileLog(uniqueClient, deUniqueClient, link string, log
 	}
 
 	return nil
+
+	// // Получаем настройки лога из БД
+	// logData, err := s.ReturnsInsertPayload(uniqueClient, link, log)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// // Добавляем отступы
+	// convertJSON, err := json.MarshalIndent(logData, "", " ")
+	// if err != nil {
+	// 	return fmt.Errorf("json conversion error")
+	// }
+
+	// // Получаем данные из uniqueClient
+	// email, err := utils.Encrypt(strings.Split(deUniqueClient, "-")[0])
+	// if err != nil {
+	// 	return err
+	// }
+	// logName, err := utils.Encrypt(log.Name)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// // Формируем имя файла
+	// fileName := fmt.Sprintf("temp/log-%s[%s].json", email, logName)
+
+	// // Читаем существующие данные из файла
+	// file, err := os.OpenFile(fileName, os.O_RDWR, 0644)
+	// if err != nil {
+	// 	return fmt.Errorf("error opening file")
+	// }
+	// defer file.Close()
+
+	// data, err := ioutil.ReadAll(file)
+	// if err != nil {
+	// 	return fmt.Errorf("error reading file")
+	// }
+
+	// // Декодируем JSON
+	// var logEntries []types.LogStruct
+	// err = json.Unmarshal(data, &logEntries)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// // Добавляем новую запись в массив
+	// logEntries = append(logEntries, *logData)
+
+	// // Кодируем JSON
+	// convertJSON, err = json.MarshalIndent(logEntries, "", " ")
+	// if err != nil {
+	// 	return fmt.Errorf("json conversion error")
+	// }
+
+	// // Перезаписываем файл
+	// file.Truncate(0)
+	// file.Seek(0, 0)
+	// _, err = file.WriteString(string(convertJSON) + "\n")
+	// if err != nil {
+	// 	return fmt.Errorf("error writing to file")
+	// }
+
+	// return nil
 }
 
 // -----------------------
@@ -589,4 +643,74 @@ func (s *Store) GenerateCode(uniqueClient string) (string, error) {
 
 	// Возвращаем строку
 	return logConnect, nil
+}
+
+func (s *Store) DetailsLog(email, logName string) (string, error) {
+	// хешируем email для файла
+	emailF, err := utils.Encrypt(email)
+	if err != nil {
+		return "", err
+	}
+
+	// хешируем log name для файла
+	logNameF, err := utils.Encrypt(logName)
+	if err != nil {
+		return "", err
+	}
+
+	// Формируем имя файла
+	fileName := fmt.Sprintf("temp/log-%s[%s].json", emailF, logNameF)
+
+	data, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return "", fmt.Errorf("file reading error")
+	}
+
+	var logData map[string]interface{}
+	err = json.Unmarshal(data, &logData)
+	if err != nil {
+		return "", err
+	} // fmt.Errorf("json parsing error")
+
+	for _, v := range logData {
+		entryMap := v.(map[string]interface{})
+
+		title := entryMap["Title"].(string)
+		timestamp := entryMap["TimeStamp"].(string)
+		url := entryMap["Client"].(map[string]interface{})["URL"].(string)
+		methods := entryMap["Client"].(map[string]interface{})["Methods"].(string)
+		statusCode := entryMap["Server"].(map[string]interface{})["StatusCode"].(string)
+		responseMessage := entryMap["Server"].(map[string]interface{})["ResponseMessage"].(string)
+
+		if title != "" {
+			detailsLog["Title"] = title
+		}
+
+		if timestamp != "" {
+			detailsLog["Timestamp"] = timestamp
+		}
+
+		if url != "" {
+			detailsLog["URL"] = url
+		}
+
+		if methods != "" {
+			detailsLog["Methods"] = methods
+		}
+
+		if statusCode != "" {
+			detailsLog["StatusCode"] = statusCode
+		}
+
+		if responseMessage != "" {
+			detailsLog["ResponseMessage"] = responseMessage
+		}
+	}
+
+	response, err := json.MarshalIndent(detailsLog, "", " ")
+	if err != nil {
+		return "", fmt.Errorf("json encoding error")
+	}
+
+	return string(response), nil
 }

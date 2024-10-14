@@ -11,12 +11,15 @@ import "time"
 // Тип пользователя
 // -------------------
 type User struct {
-	ID        int       `json:"id"`
-	FirstName string    `json:"firstName"`
-	LastName  string    `json:"lastName"`
-	Email     string    `json:"email"`
-	Password  string    `json:"password"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID            int       `json:"id"`
+	FirstName     string    `json:"firstName"`
+	LastName      string    `json:"lastName"`
+	UserName      string    `json:"username"`
+	UserNameUpper string    `json:"username_upper"`
+	Email         string    `json:"email"`
+	EmailUpper    string    `json:"email_upper"`
+	Password      string    `json:"password"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 // -------------------

@@ -26,7 +26,9 @@ func NewHandler(store interfaces.ISite, userStore interfaces.IUser) *Handler {
 // Функция для определения routers
 // -------------------
 func (h *Handler) RegisterRoutes(router *mux.Router) {
+	// создания сайта
 	router.HandleFunc("/create/site", auth.WithJWTAuth(h.handleCreateSite, h.userStore)).Methods("POST")
+	// вывод всех сайтов по userID
 	router.HandleFunc("/select/sites", auth.WithJWTAuth(h.handleSelectSites, h.userStore)).Methods("GET")
 }
 

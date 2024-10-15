@@ -1,10 +1,10 @@
 <--deploy-->
 
-PublicHost: junction.proxy.rlwy.net
-Port: 3306
+PublicHost: autorack.proxy.rlwy.net
+Port: 25792
 DBUser: root
-DBPassword: cBdebQpIKwdZjjuwGoeigaJaIvnZjCtJ
-DBAddress: junction.proxy.rlwy.net 14617
+DBPassword: mIRdwqeeczlTjSJYylZhkLKISfNbfgqm
+DBAddress: autorack.proxy.rlwy.net 25792
 DBName: railway
 
 <--devop-->

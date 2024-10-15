@@ -28,7 +28,6 @@ func scanRowIntoSites(rows *sql.Rows) (*types.Site, error) {
 		&site.Description,
 		&site.Link,
 		&site.Status,
-		&site.CreatedAt,
 	)
 
 	if err != nil {

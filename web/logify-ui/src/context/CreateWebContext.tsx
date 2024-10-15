@@ -1,5 +1,4 @@
 import React from "react";
-import { signupAPI } from "../api/signup-api";
 import { createWebAPI } from "../api/create-web-api";
 
 // интерфейс контекста

@@ -3,7 +3,6 @@ import { TypesLog } from "../types/types";
 import { settingsAPI } from "../api/settings-api";
 import { SettingsData } from "../components/settings/settings_data";
 import { settingsSetAPI } from "../api/settings.set-api";
-import gsap from "gsap";
 
 // интерфейс контекста
 // ===================

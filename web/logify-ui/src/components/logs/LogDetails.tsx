@@ -11,8 +11,6 @@ export const LogDetails = () => {
   // ======
   const { siteName, logName } = useParams();
   const {
-    log,
-    uniqueClient,
     codeConnectLog,
     responseServer,
     statusCode,

@@ -50,7 +50,3 @@ type SettingsLog = {
   session: boolean;
   authenticate: boolean;
 };
-
-type Test = {
-  title: string;
-};

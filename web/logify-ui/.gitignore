@@ -11,3 +11,4 @@ dist/
 *.njsproj
 *.sln
 *.sw?
+*.local

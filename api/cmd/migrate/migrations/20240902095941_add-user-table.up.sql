@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   `email` VARCHAR(255) NOT NULL,
   `email_upper` VARCHAR(255) NOT NULL,
   `password` VARCHAR(255) NOT NULL,
+  `balance` FLOAT(25) NOT NULL DEFAULT '5',
 
   PRIMARY KEY (id),
   UNIQUE KEY (email)

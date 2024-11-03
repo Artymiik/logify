@@ -1,20 +1,23 @@
 package logs
 
 import (
+	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"strings"
+	"io"
+	"reflect"
+	"sync"
 	"time"
 
-	"os"
-
-	"path/filepath"
-
-	"github.com/Artymiik/logify/services/check"
+	"github.com/Artymiik/logify/pkg"
+	"github.com/Artymiik/logify/pkg/files"
 	"github.com/Artymiik/logify/types"
 	"github.com/Artymiik/logify/utils"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type Store struct {
@@ -33,8 +36,6 @@ var payloadLog map[string]interface{} = map[string]interface{}{
 	"": "",
 }
 
-var detailsLog map[string]interface{} = map[string]interface{}{}
-
 // ------------------------
 // ------------------------
 // Функция сканирование массива данных
@@ -44,10 +45,14 @@ func ScanRowIntoLogs(rows *sql.Rows) (*types.Log, error) {
 
 	err := rows.Scan(
 		&log.ID,
+		&log.DetailsLogId,
 		&log.SiteID,
+		&log.UserID,
 		&log.Name,
 		&log.UniqueClient,
 		&log.Router,
+		&log.Status,
+		&log.CreatedAt,
 		&log.Settings.Timestamp,
 		&log.Settings.URL,
 		&log.Settings.Methods,
@@ -62,7 +67,6 @@ func ScanRowIntoLogs(rows *sql.Rows) (*types.Log, error) {
 		&log.Settings.LocalStorage,
 		&log.Settings.Session,
 		&log.Settings.Authenticate,
-		&log.Settings.Timestamp,
 	)
 
 	if err != nil {
@@ -76,10 +80,57 @@ func ScanRowIntoLogs(rows *sql.Rows) (*types.Log, error) {
 // -----------------------
 // Функция создания log + settings в БД
 // -----------------------
-func (s *Store) CreateDefaultLog(log types.Log) error {
-	// запрос к БД на создания log
-	_, err := s.db.Exec("insert into logs (siteId, name, uniqueClient, router) values(?, ?, ?, ?)", log.SiteID, log.Name, log.UniqueClient, log.Router)
+func (s *Store) CreateDefaultLog(category string, log types.Log) error {
+	var detail_log_id int
 
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
+	stmt, err := s.db.PrepareContext(ctx, "insert into logs (details_log_id, siteId, userId, name, uniqueClient, router, createdAt, methods, responseMessage, ipAddress, gps, username, email, session, authenticate) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	// запрос к БД на создания details_log
+	_, err = s.db.ExecContext(ctx, "insert into details_log () VALUES ()")
+	if err != nil {
+		return err
+	}
+	// вывод id последней записи
+	err = s.db.QueryRowContext(ctx, "select MAX(id) from details_log").Scan(&detail_log_id)
+	if err != nil {
+		return err
+	}
+
+	if category == "Authenticate" {
+		// "insert into logs (details_log_id, siteId, userId, name, uniqueClient, router, createdAt, username, email, session, authenticate) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", detail_log_id, log.SiteID, log.UserID, log.Name, log.UniqueClient, log.Router, time.Now().Format("2006-01-02 15:04:05"), true, true, true, true
+
+		// запрос к БД на создания log
+		_, err := stmt.Exec(detail_log_id, log.SiteID, log.UserID, log.Name, log.UniqueClient, log.Router, time.Now().Format("2006-01-02 15:04:05"), false, false, false, false, true, true, true, true)
+		// обработка ошибки
+		if err != nil {
+			return err
+		}
+
+		return nil
+	} else if category == "Safety" {
+		// "insert into logs (details_log_id, siteId, userId, name, uniqueClient, router, createdAt, responseMessage, methods, ipAddress, gps, authenticate, email) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", detail_log_id, log.SiteID, log.UserID, log.Name, log.UniqueClient, log.Router, time.Now().Format("2006-01-02 15:04:05"), false, false, true, true, true, true
+
+		// запрос к БД на создания log
+		_, err := stmt.Exec(detail_log_id, log.SiteID, log.UserID, log.Name, log.UniqueClient, log.Router, time.Now().Format("2006-01-02 15:04:05"), false, false, true, true, true, false, false, true)
+		// обработка ошибки
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+	// "insert into logs (details_log_id, siteId, userId, name, uniqueClient, router, createdAt) values(?, ?, ?, ?, ?, ?, ?)", detail_log_id, log.SiteID, log.UserID, log.Name, log.UniqueClient, log.Router, time.Now().Format("2006-01-02 15:04:05")
+
+	// запрос к БД на создания log
+	_, err = stmt.Exec(detail_log_id, log.SiteID, log.UserID, log.Name, log.UniqueClient, log.Router, time.Now().Format("2006-01-02 15:04:05"), true, true, false, false, false, false, false, false)
 	// обработка ошибки
 	if err != nil {
 		return err
@@ -93,10 +144,12 @@ func (s *Store) CreateDefaultLog(log types.Log) error {
 // Функция вывода всех log по siteID
 // -----------------------
 func (s *Store) SelectLogs(id int) ([]types.LogQuery, error) {
-	// -----------------------
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// Выводим данные из БД
-	// -----------------------
-	rows, err := s.db.Query("select id, name, uniqueClient, createdAt from logs where siteId = ?", id)
+	rows, err := s.db.QueryContext(ctx, "select id, name, uniqueClient, status, createdAt from logs where siteId = ?", id)
 
 	// обработка ошибки
 	if err != nil {
@@ -106,16 +159,16 @@ func (s *Store) SelectLogs(id int) ([]types.LogQuery, error) {
 	// Читаем данные
 	// Создаем массив
 	var logs []types.LogQuery
-	log := new(types.LogQuery)
 
 	// цикл для данных
 	for rows.Next() {
-		err := rows.Scan(&log.ID, &log.Name, &log.UniqueClient, &log.CreatedAt)
+		var log types.LogQuery
+		err := rows.Scan(&log.ID, &log.Name, &log.UniqueClient, &log.Status, &log.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
 
-		logs = append(logs, *log)
+		logs = append(logs, log)
 	}
 
 	// Проверка что есть логи
@@ -127,15 +180,55 @@ func (s *Store) SelectLogs(id int) ([]types.LogQuery, error) {
 	return logs, nil
 }
 
-// ------------------------
 // -----------------------
-// Функция определенного лога по logName
+// Вывод логов по userID
 // -----------------------
-func (s *Store) GetLogByName(name string) (*types.Log, error) {
-	// -----------------------
+func (s *Store) GetLogsByUserID(userID int) ([]types.Log, error) {
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// Выводим данные из БД
-	// -----------------------
-	rows, err := s.db.Query("select * from logs where name = ?", name)
+	rows, err := s.db.QueryContext(ctx, "select id, status from logs where userId = ?", userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Читаем данные
+	// Создаем массив
+	var logs []types.Log
+
+	// цикл по данным logs
+	for rows.Next() {
+		var log types.Log
+		err := rows.Scan(&log.ID, &log.Status)
+
+		if err != nil {
+			return nil, err
+		}
+
+		// добовляем в массив
+		logs = append(logs, log)
+	}
+
+	if len(logs) == 0 {
+		return nil, fmt.Errorf("the log was not found")
+	}
+
+	return logs, nil
+}
+
+// -------------------------------------
+// -------------------------------------
+// Функция определенного лога по logName
+// -------------------------------------
+func (s *Store) GetLogByName(name string) (*types.Log, error) {
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
+	// Выводим данные из БД
+	rows, err := s.db.QueryContext(ctx, "select * from logs where name = ?", name)
 
 	// обработка ошибки
 	if err != nil {
@@ -143,7 +236,6 @@ func (s *Store) GetLogByName(name string) (*types.Log, error) {
 	}
 
 	// Читаем данные
-	// Создаем массив
 	log := new(types.Log)
 
 	// цикл для данных
@@ -156,23 +248,27 @@ func (s *Store) GetLogByName(name string) (*types.Log, error) {
 
 	// Проверка что есть логи
 	if log.ID == 0 {
-		return nil, fmt.Errorf("you don't have any active logs")
+		return nil, fmt.Errorf("the log was not found")
 	}
 
 	// Возращаем ответ
 	return log, nil
 }
 
-// ------------------------
-// -----------------------
+// -----------------------------------------------
+// -----------------------------------------------
 // Функция вывода количество log по userId и logName
-// -----------------------
+// -----------------------------------------------
 func (s *Store) CountLog(id int) (int, error) {
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// Переменная для хранения кол-во двнных
 	var total int
 
 	// Запрос на получение кол-во данных
-	err := s.db.QueryRow("select count(*) as total from logs where siteId = ?", id).Scan(&total)
+	err := s.db.QueryRowContext(ctx, "select count(*) as total from logs where siteId = ?", id).Scan(&total)
 	if err != nil {
 		return 0, fmt.Errorf("data reading error")
 	}
@@ -181,13 +277,44 @@ func (s *Store) CountLog(id int) (int, error) {
 	return total, nil
 }
 
+// ------------------------------------------
+// ------------------------------------------
+// Функция вывода userID по uniqueClient из БД
+// ------------------------------------------
+func (s *Store) GetUserIdByUniqueClient(uniqueClient string) (int, error) {
+	// Переменная для хранения userId из БД
+	var userID int
+
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
+	// Запрос на получение userId по uniqueClient из БД
+	err := s.db.QueryRowContext(ctx, "select userId from logs where uniqueClient = ?", uniqueClient).Scan(&userID)
+	if err != nil {
+		return -1, err
+	}
+
+	// Проверка наличия userId в БД
+	if userID <= 0 {
+		return -1, err
+	}
+
+	// Возвращаем userId из БД
+	return userID, nil
+}
+
 // ------------------------
 // -----------------------
 // Функция для вывода настроек логов из БД
 // -----------------------
 func (s *Store) GetLog(uniqueClient string) (*types.Log, error) {
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// Выводим данные из БД
-	rows, err := s.db.Query("select * from logs where uniqueClient = ?", uniqueClient)
+	rows, err := s.db.QueryContext(ctx, "select * from logs where uniqueClient = ?", uniqueClient)
 	if err != nil {
 		return nil, err
 	}
@@ -215,8 +342,12 @@ func (s *Store) GetLog(uniqueClient string) (*types.Log, error) {
 // Функция обновления настроек лога
 // -----------------------
 func (s *Store) UpdateSettingsLog(settings *types.SettingsLogPayload, logName string) error {
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// Запрос на изменение настроек лога
-	_, err := s.db.Exec(`
+	_, err := s.db.ExecContext(ctx, `
 	update logs set
 	url = ?, methods = ?,
 	statusCode = ?, responseMessage = ?,
@@ -242,10 +373,10 @@ type LogData struct {
 	Message string `json:"message"`
 }
 
-// ------------------------
-// -----------------------
+// -----------------------------------
+// -----------------------------------
 // Функция для создания файла для логов
-// -----------------------
+// -----------------------------------
 func (s *Store) CreateLogFile(name, email string, siteId int) error {
 	// Шифруем имя файла
 	encryptName, err := utils.Encrypt(name)
@@ -261,20 +392,26 @@ func (s *Store) CreateLogFile(name, email string, siteId int) error {
 
 	// Указываем на папку и файл
 	logName := fmt.Sprintf("log-%s[%s].json", encryptUserData, encryptName)
-	tempDir, err := filepath.Abs("temp/")
+
+	// ----------------------
+	// создания файла в S3 storage
+	// Deploy verion
+	// ----------------------
+	client, err := files.CreateS3Client()
 	if err != nil {
-		return fmt.Errorf("error getting the absolute path")
+		return err
 	}
 
-	// Создаем папку
-	filePath := filepath.Join(tempDir, logName)
+	// создания пустого файла на S3
+	_, err = client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket: aws.String("logify-storage"),
+		Key:    aws.String(logName),
+		Body:   bytes.NewReader([]byte{}),
+	})
 
-	// записываем данные в файл
-	file, err := os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf("file creation error: %w", err)
+		return fmt.Errorf("error creating an log file")
 	}
-	file.Close()
 
 	return nil
 }
@@ -293,36 +430,44 @@ func (s *Store) ReturnsInsertPayload(uniqueClient, link string, log *types.Log) 
 	// --------------------
 	// Переменные для файла
 	// --------------------
-	methods, err := check.GetMethods(link)
-	if err != nil {
-		return nil, err
-	}
+	// methods, err := pkg.GetMethods(link)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// Заполняем данные для JSON
 	JSON_LOG_DATA := &types.LogStruct{
-		Title:     log.Name,
+		// Title
+		Title: log.Name,
+		// Timestamp
 		TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
+		// Client Part
 		Client: types.LogDataClient{
+			// URL
 			URL: func() string {
 				if settings.Settings.URL {
 					return link
 				}
 				return ""
 			}(),
+			// Methods
 			Methods: func() string {
 				if settings.Settings.Methods {
-					return methods
+					return "POST"
 				}
 				return ""
 			}(),
 		},
+		// Server Part
 		Server: types.LogDataServer{
+			// StatusCode
 			StatusCode: func() string {
 				if payloadLog["StatusCode"] != nil {
 					return payloadLog["StatusCode"].(string)
 				}
 				return ""
 			}(),
+			// ResponseMessage
 			ResponseMessage: func() string {
 				if payloadLog["ResponseMessage"] != nil {
 					return payloadLog["ResponseMessage"].(string)
@@ -330,49 +475,65 @@ func (s *Store) ReturnsInsertPayload(uniqueClient, link string, log *types.Log) 
 				return ""
 			}(),
 		},
+		// Details Part
 		Details: types.LogDataDetails{
+			// Description
 			Description: func() string {
 				if payloadLog["Description"] != nil {
 					return payloadLog["Description"].(string)
 				}
 				return ""
 			}(),
+			// IPAddress
 			IPAddress: func() string {
 				if payloadLog["IPAddress"] != nil {
 					return payloadLog["IPAddress"].(string)
 				}
 				return ""
 			}(),
+			// GPS
 			GPS: func() string {
 				if payloadLog["GPS"] != nil {
 					return payloadLog["GPS"].(string)
 				}
 				return ""
 			}(),
+			// UserName
 			UserName: func() string {
 				if payloadLog["UserName"] != nil {
 					return payloadLog["UserName"].(string)
 				}
 				return ""
 			}(),
+			// Email
 			Email: func() string {
 				if payloadLog["Email"] != nil {
 					return payloadLog["Email"].(string)
 				}
 				return ""
 			}(),
+			// Cookie
 			Cookie: func() string {
 				if payloadLog["Cookie"] != nil {
 					return payloadLog["Cookie"].(string)
 				}
 				return ""
 			}(),
+			// LocalStorage
+			LocalStorage: func() string {
+				if payloadLog["LocalStorage"] != nil {
+					return payloadLog["LocalStorage"].(string)
+				}
+				return ""
+			}(),
+			// Session
 			Session: func() string {
 				if payloadLog["Session"] != nil {
 					return payloadLog["Session"].(string)
 				}
 				return ""
 			}(),
+			// Authenticate
 			Authenticate: func() string {
 				if payloadLog["Authenticate"] != nil {
 					return payloadLog["Authenticate"].(string)
@@ -397,101 +558,40 @@ func (s *Store) InsertIntoFileLog(uniqueClient, deUniqueClient, link string, log
 		return err
 	}
 
-	// Добавляем отступы
-	convertJSON, err := json.MarshalIndent(logData, "", "  ")
-	if err != nil {
-		return fmt.Errorf("json conversion error")
-	}
-
-	// Получаем данные из uniqueClient
-	email, err := utils.Encrypt(strings.Split(deUniqueClient, "-")[0])
-	if err != nil {
-		return err
-	}
-	logName, err := utils.Encrypt(log.Name)
-	if err != nil {
-		return err
-	}
-
 	// Формируем имя файла
-	fileName := fmt.Sprintf("temp/log-%s[%s].json", email, logName)
-
-	// Открываем файл для записи
-	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	fileName, err := files.GetFileName(deUniqueClient, log.Name)
 	if err != nil {
-		return fmt.Errorf("error opening file")
-	}
-	defer file.Close()
-
-	// Записываем данные в файл
-	if _, err := file.WriteString(string(convertJSON) + ",\n"); err != nil {
-		return fmt.Errorf("file recording error")
+		return err
 	}
 
-	return nil
+	// Создание клиента S3
+	client, err := files.CreateS3Client()
+	if err != nil {
+		return err
+	}
 
-	// // Получаем настройки лога из БД
-	// logData, err := s.ReturnsInsertPayload(uniqueClient, link, log)
-	// if err != nil {
-	// 	return err
-	// }
+	// Проверка на существование файла в S3
+	_, err = client.HeadObject(context.Background(), &s3.HeadObjectInput{
+		Bucket: aws.String("logify-storage"),
+		Key:    aws.String(fileName),
+	})
 
-	// // Добавляем отступы
-	// convertJSON, err := json.MarshalIndent(logData, "", " ")
-	// if err != nil {
-	// 	return fmt.Errorf("json conversion error")
-	// }
+	if err == nil {
+		// файл существует
+		convertJSON, err := files.ReadDataInS3(client, "logify-storage", fileName, logData)
+		if err != nil {
+			return err
+		}
 
-	// // Получаем данные из uniqueClient
-	// email, err := utils.Encrypt(strings.Split(deUniqueClient, "-")[0])
-	// if err != nil {
-	// 	return err
-	// }
-	// logName, err := utils.Encrypt(log.Name)
-	// if err != nil {
-	// 	return err
-	// }
+		// Загружаем обновленные данные в S3
+		if err := files.UploadDataToS3(client, "logify-storage", fileName, convertJSON); err != nil {
+			return err
+		}
 
-	// // Формируем имя файла
-	// fileName := fmt.Sprintf("temp/log-%s[%s].json", email, logName)
+		return nil
+	}
 
-	// // Читаем существующие данные из файла
-	// file, err := os.OpenFile(fileName, os.O_RDWR, 0644)
-	// if err != nil {
-	// 	return fmt.Errorf("error opening file")
-	// }
-	// defer file.Close()
-
-	// data, err := ioutil.ReadAll(file)
-	// if err != nil {
-	// 	return fmt.Errorf("error reading file")
-	// }
-
-	// // Декодируем JSON
-	// var logEntries []types.LogStruct
-	// err = json.Unmarshal(data, &logEntries)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // Добавляем новую запись в массив
-	// logEntries = append(logEntries, *logData)
-
-	// // Кодируем JSON
-	// convertJSON, err = json.MarshalIndent(logEntries, "", " ")
-	// if err != nil {
-	// 	return fmt.Errorf("json conversion error")
-	// }
-
-	// // Перезаписываем файл
-	// file.Truncate(0)
-	// file.Seek(0, 0)
-	// _, err = file.WriteString(string(convertJSON) + "\n")
-	// if err != nil {
-	// 	return fmt.Errorf("error writing to file")
-	// }
-
-	// return nil
+	return fmt.Errorf("the log file was not found or does not exist")
 }
 
 // -----------------------
@@ -500,58 +600,69 @@ func (s *Store) InsertIntoFileLog(uniqueClient, deUniqueClient, link string, log
 // сохранение в переменную настроек
 // -----------------------
 func (s *Store) ValidatePayload(log *types.Log, payload *types.InsertLogPayload) error {
-	if log.Settings.StatusCode && payload.Action.StatusCode == "" || !log.Settings.StatusCode && payload.Action.StatusCode != "" {
-		return fmt.Errorf("error in transmitted data StatusCode")
-	} else {
-		payloadLog["StatusCode"] = payload.Action.StatusCode
+	// создание канала для ошибок
+	errors := make(chan error)
+
+	// массив строк настроек как в БД
+	fields := []string{"StatusCode", "ResponseMessage", "IPAddress", "GPS", "UserName", "Email", "Cookie", "LocalStorage", "Session", "Authenticate"}
+	// массив строк для возврата значений
+	returnsFields := []string{"statusCode", "responseMessage", "ip_address", "gps", "userName", "email", "cookie", "localStorage", "session", "authenticate"}
+
+	// Создаем WaitGroup и устанавливаем счетчик горутин
+	var wg sync.WaitGroup
+	wg.Add(len(fields))
+
+	// Объявление мьютекса
+	var mu sync.Mutex
+
+	// цикл по данным settings
+	for i := 0; i < len(fields); i++ {
+		// Запускаем горутину для каждого поля settings и payload.Action
+		go func(field string, payloadField string) {
+			// уменьшение счетчика WaitGroup на -1
+			defer wg.Done()
+
+			// Получаем доступ к полям settings и payload.Action
+			settings := reflect.ValueOf(log.Settings).FieldByName(field)
+			actionField := reflect.ValueOf(payload.Args).FieldByName(field)
+
+			// Проверяем наличие поля в payload.Action
+			if actionField.IsValid() {
+				// Проверяем настройки на соответствие полю payload.Action
+				if settings.Bool() && (actionField.IsZero() || actionField.Interface() == nil) {
+					// Если поле пустое или nil, возвращаем ошибку
+					errors <- fmt.Errorf("[not/is used]:%s", payloadField)
+				} else {
+					// Записываем значение поля в payloadLog, если настройка включена в settings
+					if !settings.Bool() && !actionField.IsZero() {
+						errors <- fmt.Errorf("[not/is used]:%s", payloadField)
+					} else {
+						// Блокировка и разблокировка мьютекса
+						mu.Lock()
+						defer mu.Unlock()
+						// записываем в map payloadLog
+						payloadLog[field] = actionField.Interface()
+					}
+				}
+			} else {
+				if settings.Bool() {
+					errors <- fmt.Errorf("[not/is used]:%s", payloadField)
+				}
+			}
+		}(fields[i], returnsFields[i])
 	}
 
-	if log.Settings.ResponseMessage && payload.Action.ResponseMessage == "" || !log.Settings.ResponseMessage && payload.Action.ResponseMessage != "" {
-		return fmt.Errorf("error in transmitted data ResponseMessage")
-	} else {
-		payloadLog["ResponseMessage"] = payload.Action.ResponseMessage
-	}
+	// Закрытие канала после завершения работы горутин
+	go func() {
+		wg.Wait()
+		close(errors)
+	}()
 
-	if log.Settings.IPAddress && payload.Action.IPAddress == "" || !log.Settings.IPAddress && payload.Action.IPAddress != "" {
-		return fmt.Errorf("error in transmitted data IPAddress")
-	} else {
-		payloadLog["IPAddress"] = payload.Action.IPAddress
-	}
-
-	if log.Settings.GPS && payload.Action.GPS == "" || !log.Settings.GPS && payload.Action.GPS != "" {
-		return fmt.Errorf("error in transmitted data GPS")
-	} else {
-		payloadLog["GPS"] = payload.Action.GPS
-	}
-
-	if log.Settings.UserName && payload.Action.UserName == "" || !log.Settings.UserName && payload.Action.UserName != "" {
-		return fmt.Errorf("error in transmitted data UserName")
-	} else {
-		payloadLog["UserName"] = payload.Action.UserName
-	}
-
-	if log.Settings.Email && payload.Action.Email == "" || !log.Settings.Email && payload.Action.Email != "" {
-		return fmt.Errorf("error in transmitted data Email")
-	} else {
-		payloadLog["Email"] = payload.Action.Email
-	}
-
-	if log.Settings.Cookie && payload.Action.Cookie == "" || !log.Settings.Cookie && payload.Action.Cookie != "" {
-		return fmt.Errorf("error in transmitted data Cookie")
-	} else {
-		payloadLog["Cookie"] = payload.Action.Cookie
-	}
-
-	if log.Settings.Session && payload.Action.Session == "" || !log.Settings.Session && payload.Action.Session != "" {
-		return fmt.Errorf("error in transmitted data Session")
-	} else {
-		payloadLog["Session"] = payload.Action.Session
-	}
-
-	if log.Settings.Authenticate && payload.Action.Authenticate == "" || !log.Settings.Authenticate && payload.Action.Authenticate != "" {
-		return fmt.Errorf("error in transmitted data Authenticate")
-	} else {
-		payloadLog["Authenticate"] = payload.Action.Authenticate
+	// Собираем ошибки из горутин
+	for err := range errors {
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -562,90 +673,96 @@ func (s *Store) ValidatePayload(log *types.Log, payload *types.InsertLogPayload)
 // Функция для генерации кода для пользователя
 // -----------------------
 func (s *Store) GenerateCode(uniqueClient string) (string, error) {
-	// инициализация строки
-	logConnect := "log.insert(connect, {"
-
 	// Получения настроек лога
 	settings, err := s.GetLog(uniqueClient)
 	if err != nil {
 		return "", err
 	}
 
-	// Проверка settings данных на true || false
-	// Формирование строки
-	if settings.Settings.StatusCode {
-		logConnect += "\n StatusCode: 200"
-	} else {
-		logConnect += ""
-	}
+	// генерируем строку для клиента
+	var code string = pkg.GenerateCode(uniqueClient, settings)
 
-	if settings.Settings.ResponseMessage {
-		logConnect += ",\n ResponseMessage: 'This is server response'"
-	} else {
-		logConnect += ""
-	}
-
-	if settings.Settings.Description {
-		logConnect += ",\n Description: 'This is a description'"
-	} else {
-		logConnect += ""
-	}
-
-	if settings.Settings.IPAddress {
-		logConnect += ",\n IPAddress: getIPAddress()"
-	} else {
-		logConnect += ""
-	}
-
-	if settings.Settings.GPS {
-		logConnect += ",\n GPS: getGPS()"
-	} else {
-		logConnect += ""
-	}
-
-	if settings.Settings.UserName {
-		logConnect += ",\n UserName: 'UserName'"
-	} else {
-		logConnect += ""
-	}
-
-	if settings.Settings.Email {
-		logConnect += ",\n Email: 'test@test.com'"
-	} else {
-		logConnect += ""
-	}
-
-	if settings.Settings.Cookie {
-		logConnect += ",\n Cookie: 'Hello, Cookie!'"
-	} else {
-		logConnect += ""
-	}
-
-	if settings.Settings.LocalStorage {
-		logConnect += ",\n LocalStorage: 'Hello, LocalStorage!'"
-	} else {
-		logConnect += ""
-	}
-
-	if settings.Settings.Session {
-		logConnect += ",\n Session: 'Hello, Session!'"
-	} else {
-		logConnect += ""
-	}
-
-	if settings.Settings.Authenticate {
-		logConnect += ",\n Authenticate: 'This is user auth'"
-	} else {
-		logConnect += ""
-	}
-
-	logConnect += "\n})"
-
-	// Возвращаем строку
-	return logConnect, nil
+	// возвращяем результат
+	return code, nil
 }
 
+// -----------------------------------
+// -----------------------------------
+// Функция для вывода содержимого лога
+// -----------------------------------
+func extractValues(entryMap map[string]interface{}) map[string]interface{} {
+	var newEntry map[string]interface{} = map[string]interface{}{}
+
+	// устанавливаем в переменные значения из файла
+	// Title
+	if title, ok := entryMap["title"].(string); ok && title != "" {
+		newEntry["title"] = title
+	}
+	// Timestamp
+	if timestamp, ok := entryMap["timestamp"].(string); ok && timestamp != "" {
+		newEntry["timestamp"] = timestamp
+	}
+	// URL
+	if url, ok := entryMap["client"].(map[string]interface{})["url"].(string); ok && url != "" {
+		newEntry["url"] = url
+	}
+	// Methods
+	if methods, ok := entryMap["client"].(map[string]interface{})["methods"].(string); ok && methods != "" {
+		newEntry["methods"] = methods
+	}
+	// StatusCode
+	if statusCode, ok := entryMap["server"].(map[string]interface{})["status"].(string); ok && statusCode != "" {
+		newEntry["statusCode"] = statusCode
+	}
+	// ResponseMessage
+	if responseMessage, ok := entryMap["server"].(map[string]interface{})["response"].(string); ok && responseMessage != "" {
+		newEntry["responseMessage"] = responseMessage
+	}
+	// Description
+	if description, ok := entryMap["details"].(map[string]interface{})["description"].(string); ok && description != "" {
+		newEntry["description"] = description
+	}
+	// IPAddress
+	if ip_address, ok := entryMap["details"].(map[string]interface{})["ip_address"].(string); ok && ip_address != "" {
+		newEntry["ip_address"] = ip_address
+	}
+	// GPS
+	if gps, ok := entryMap["details"].(map[string]interface{})["gps"].(string); ok && gps != "" {
+		newEntry["gps"] = gps
+	}
+	// UserName
+	if username, ok := entryMap["details"].(map[string]interface{})["userName"].(string); ok && username != "" {
+		newEntry["userName"] = username
+	}
+	// Email
+	if email, ok := entryMap["details"].(map[string]interface{})["email"].(string); ok && email != "" {
+		newEntry["email"] = email
+	}
+	// Cookie
+	if cookie, ok := entryMap["details"].(map[string]interface{})["cookie"].(string); ok && cookie != "" {
+		newEntry["cookie"] = cookie
+	}
+	// localStorage
+	if localStorage, ok := entryMap["details"].(map[string]interface{})["localStorage"].(string); ok && localStorage != "" {
+		newEntry["localStorage"] = localStorage
+	}
+	// Session
+	if session, ok := entryMap["details"].(map[string]interface{})["session"].(string); ok && session != "" {
+		newEntry["session"] = session
+	}
+	// Authenticate
+	if authenticate, ok := entryMap["details"].(map[string]interface{})["authenticate"].(string); ok && authenticate != "" {
+		newEntry["authenticate"] = authenticate
+	}
+
+	return newEntry
+}
+
+// Функция для вывода содержимого лога
 func (s *Store) DetailsLog(email, logName string) (string, error) {
+	// массив для хранения структурированных данных
+	detailsLog := make([]map[string]interface{}, 0)
+
 	// хешируем email для файла
 	emailF, err := utils.Encrypt(email)
 	if err != nil {
@@ -659,58 +776,139 @@ func (s *Store) DetailsLog(email, logName string) (string, error) {
 	}
 
 	// Формируем имя файла
-	fileName := fmt.Sprintf("temp/log-%s[%s].json", emailF, logNameF)
+	fileName := fmt.Sprintf("log-%s[%s].json", emailF, logNameF)
 
-	data, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		return "", fmt.Errorf("file reading error")
-	}
-
-	var logData map[string]interface{}
-	err = json.Unmarshal(data, &logData)
+	// создаем клиента для S3 storage
+	client, err := files.CreateS3Client()
 	if err != nil {
 		return "", err
-	} // fmt.Errorf("json parsing error")
-
-	for _, v := range logData {
-		entryMap := v.(map[string]interface{})
-
-		title := entryMap["Title"].(string)
-		timestamp := entryMap["TimeStamp"].(string)
-		url := entryMap["Client"].(map[string]interface{})["URL"].(string)
-		methods := entryMap["Client"].(map[string]interface{})["Methods"].(string)
-		statusCode := entryMap["Server"].(map[string]interface{})["StatusCode"].(string)
-		responseMessage := entryMap["Server"].(map[string]interface{})["ResponseMessage"].(string)
-
-		if title != "" {
-			detailsLog["Title"] = title
-		}
-
-		if timestamp != "" {
-			detailsLog["Timestamp"] = timestamp
-		}
-
-		if url != "" {
-			detailsLog["URL"] = url
-		}
-
-		if methods != "" {
-			detailsLog["Methods"] = methods
-		}
-
-		if statusCode != "" {
-			detailsLog["StatusCode"] = statusCode
-		}
-
-		if responseMessage != "" {
-			detailsLog["ResponseMessage"] = responseMessage
-		}
 	}
 
+	// получаем данные из файла log
+	logData, err := files.ReadLogsFromS3(client, "logify-storage", fileName)
+	if err != nil {
+		return "", err
+	}
+
+	// Создаем канал для передачи результатов обработки
+	resultsChan := make(chan map[string]interface{})
+
+	// Создаем WaitGroup для синхронизации горутин
+	var wg sync.WaitGroup
+	wg.Add(len(logData))
+
+	// пробегаемся по данным из файла
+	for _, v := range logData {
+		// Запускаем горутину
+		go func(v map[string]interface{}) {
+			// уменьшение счетчика WaitGroup на -1
+			defer wg.Done()
+			// Обработка записи
+			newEntry := extractValues(v)
+			// добовляем результат в канал
+			resultsChan <- newEntry
+		}(v)
+	}
+
+	// Ожидаем завершения всех горутин
+	go func() {
+		wg.Wait()
+		// закрытие канала
+		close(resultsChan)
+	}()
+
+	// Получаем результаты из канала
+	for entry := range resultsChan {
+		detailsLog = append(detailsLog, entry)
+	}
+
+	// кодируем в JSON и возвращаем ответ в router
 	response, err := json.MarshalIndent(detailsLog, "", " ")
 	if err != nil {
 		return "", fmt.Errorf("json encoding error")
 	}
 
+	// возвращяем ответ в router
 	return string(response), nil
+}
+
+// -------------------------
+// -------------------------
+// Функция для удаления лога
+// -------------------------
+func (s *Store) DeleteLogByFileName(logName, fileName string) error {
+	// удаление лога из БД
+	_, err := s.db.Exec("delete from logs where name = ?", logName)
+	if err != nil {
+		return err
+	}
+
+	// инициализация клиента
+	client, err := files.CreateS3Client()
+	if err != nil {
+		return err
+	}
+
+	// установка параметров s3
+	params := &s3.DeleteObjectInput{
+		Bucket: aws.String("logify-storage"),
+		Key:    aws.String(fileName),
+	}
+
+	// удаление обьекта лог из s3
+	_, err = client.DeleteObject(context.Background(), params)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ----------------------
+// ----------------------
+// Скачивание файла из S3
+// ----------------------
+func (s *Store) DownloadFileLog(email, logName string) (io.ReadCloser, error) {
+	// Шифруем имя файла
+	encryptName, err := utils.Encrypt(logName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Шифруем email пользователя
+	encryptUserData, err := utils.Encrypt(email)
+	if err != nil {
+		return nil, err
+	}
+
+	// Формируем имя файла
+	fileName := fmt.Sprintf("log-%s[%s].json", encryptUserData, encryptName)
+
+	// создаем клиента S3
+	client, err := files.CreateS3Client()
+	if err != nil {
+		return nil, err
+	}
+
+	// определите параметры входного файла S3
+	// получите объект S3
+	response, err := client.GetObject(context.Background(), &s3.GetObjectInput{
+		Bucket: aws.String("logify-storage"),
+		Key:    aws.String(fileName),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get object %s", err)
+	}
+
+	// закрытие тела
+	defer response.Body.Close()
+
+	// чтение файла
+	// body, err := ioutil.ReadAll(response.Body)
+	// if err != nil {
+	// 	return "", fmt.Errorf("failed to read body")
+	// }
+
+	return response.Body, nil
+	// return string(body), nil
 }

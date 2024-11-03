@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS conects (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userId` INT NOT NULL,
+  `conect` VARCHAR(255) NOT NULL,
+  `status` VARCHAR(255) NOT NULL DEFAULT 'turnedOff',
+  `price` FLOAT(10) NOT NULL,
+  `createdAt` VARCHAR(100) NOT NULL,
+
+  PRIMARY KEY (id)
+);

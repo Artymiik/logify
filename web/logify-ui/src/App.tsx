@@ -1,12 +1,18 @@
+import { createBrowserRouter } from "react-router-dom";
+import { Suspense } from "react";
 import { LogDetailsProvider } from "./context/LogDetailsContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { SigninProvider } from "./context/SigninContext";
 import { SignupProvider } from "./context/SignupContext";
 import { WebListProvider } from "./context/WebListContext";
-import * as pages from "./pages/export.page.config";
-import { createBrowserRouter } from "react-router-dom";
-import ProtectedRouter from "./ProtectedRouter";
 import { CreateWebProvider } from "./context/CreateWebContext";
+import { DetailsLogProvider } from "./context/DetailsLogContext";
+import { CreateLogProvider } from "./context/CreateLogContext";
+import LoadWeb from "./components/Loader/LoadWeb";
+import ProtectedRouter from "./ProtectedRouter";
+import * as pages from "./pages/export.page.config";
+import { LogListAndDeleteProvider } from "./context/LogListAndDeleteContext";
+import { ConectsProvider } from "./context/ConectsContext";
 
 const App = createBrowserRouter([
   {
@@ -15,69 +21,119 @@ const App = createBrowserRouter([
       {
         path: "",
         element: (
-          <ProtectedRouter>
-            <WebListProvider>
-              <CreateWebProvider>
-                <pages.index />
-              </CreateWebProvider>
-            </WebListProvider>
-          </ProtectedRouter>
+          <Suspense fallback={<LoadWeb />}>
+            <ProtectedRouter>
+              <WebListProvider>
+                <CreateWebProvider>
+                  <ConectsProvider>
+                    <pages.index />
+                  </ConectsProvider>
+                </CreateWebProvider>
+              </WebListProvider>
+            </ProtectedRouter>
+          </Suspense>
         ),
       },
       {
         path: "signin",
         element: (
-          <SigninProvider>
-            <pages.signin />
-          </SigninProvider>
+          <Suspense fallback={<LoadWeb />}>
+            <SigninProvider>
+              <pages.signin />
+            </SigninProvider>
+          </Suspense>
         ),
       },
       {
         path: "signup",
         element: (
-          <SignupProvider>
-            <pages.signup />
-          </SignupProvider>
+          <Suspense fallback={<LoadWeb />}>
+            <SignupProvider>
+              <pages.signup />
+            </SignupProvider>
+          </Suspense>
         ),
       },
       {
         path: "dashboard/:siteName",
         element: (
-          <ProtectedRouter>
-            <WebListProvider>
-              <CreateWebProvider>
-                <pages.dashboard_logs />
-              </CreateWebProvider>
-            </WebListProvider>
-          </ProtectedRouter>
+          <Suspense fallback={<LoadWeb />}>
+            <ProtectedRouter>
+              <WebListProvider>
+                <CreateWebProvider>
+                  <ConectsProvider>
+                    <CreateLogProvider>
+                      <LogListAndDeleteProvider>
+                        <pages.dashboard_logs />
+                      </LogListAndDeleteProvider>
+                    </CreateLogProvider>
+                  </ConectsProvider>
+                </CreateWebProvider>
+              </WebListProvider>
+            </ProtectedRouter>
+          </Suspense>
         ),
       },
       {
         path: "dashboard/:siteName/:logName",
         element: (
-          <ProtectedRouter>
-            <WebListProvider>
-              <CreateWebProvider>
-                <LogDetailsProvider>
-                  <pages.dashboard_log />
-                </LogDetailsProvider>
-              </CreateWebProvider>
-            </WebListProvider>
-          </ProtectedRouter>
+          <Suspense fallback={<LoadWeb />}>
+            <ProtectedRouter>
+              <WebListProvider>
+                <CreateWebProvider>
+                  <ConectsProvider>
+                    <LogDetailsProvider>
+                      <pages.dashboard_log />
+                    </LogDetailsProvider>
+                  </ConectsProvider>
+                </CreateWebProvider>
+              </WebListProvider>
+            </ProtectedRouter>
+          </Suspense>
+        ),
+      },
+      {
+        path: "dashboard/:siteName/:logName/log",
+        element: (
+          <Suspense fallback={<LoadWeb />}>
+            <ProtectedRouter>
+              <WebListProvider>
+                <CreateWebProvider>
+                  <ConectsProvider>
+                    <DetailsLogProvider>
+                      <pages.dashboard_details />
+                    </DetailsLogProvider>
+                  </ConectsProvider>
+                </CreateWebProvider>
+              </WebListProvider>
+            </ProtectedRouter>
+          </Suspense>
         ),
       },
       {
         path: "dashboard/:siteName/:logName/settings",
         element: (
-          <ProtectedRouter>
-            <WebListProvider>
-              <CreateWebProvider>
-                <SettingsProvider>
-                  <pages.settings />
-                </SettingsProvider>
-              </CreateWebProvider>
-            </WebListProvider>
-          </ProtectedRouter>
+          <Suspense fallback={<LoadWeb />}>
+            <ProtectedRouter>
+              <WebListProvider>
+                <CreateWebProvider>
+                  <ConectsProvider>
+                    <SettingsProvider>
+                      <pages.settings />
+                    </SettingsProvider>
+                  </ConectsProvider>
+                </CreateWebProvider>
+              </WebListProvider>
+            </ProtectedRouter>
+          </Suspense>
+        ),
+      },
+      {
+        path: "*",
+        element: (
+          <Suspense fallback={<LoadWeb />}>
+            <pages.not_found />
+          </Suspense>
         ),
       },
     ],

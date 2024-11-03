@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/Artymiik/logify/interfaces"
+	"github.com/Artymiik/logify/pkg"
 	"github.com/Artymiik/logify/services/auth"
-	"github.com/Artymiik/logify/services/check"
 	"github.com/Artymiik/logify/types"
 	"github.com/Artymiik/logify/utils"
 	"github.com/go-playground/validator/v10"
@@ -41,11 +41,16 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 // CREATE SITE ROUTER
 // ------------------------------
 func (h *Handler) handleCreateSite(w http.ResponseWriter, r *http.Request) {
-	userId := auth.GetUserIDFromContext(r.Context())
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
 
-	// -----------------
+	var userId int = auth.GetUserIDFromContext(r.Context())
+
 	// Получаем данные пользователя
-	// -----------------
 	var payload *types.CreateSitePayload
 
 	// Отправляем пользователю ошибку, что не все поля заполнены
@@ -61,14 +66,10 @@ func (h *Handler) handleCreateSite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// проверка активной ссылки сайта
-	if err := check.CheckWebSite(payload.SiteLink); err != nil {
+	if err := pkg.CheckWebSite(payload.SiteLink); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	// if err != nil {
-	// 	utils.WriteError(w, http.StatusBadRequest, err)
-	// 	return
-	// }
 
 	// создание сайта
 	err := h.store.CreateSite(types.Site{
@@ -93,8 +94,15 @@ func (h *Handler) handleCreateSite(w http.ResponseWriter, r *http.Request) {
 // SLECT SITES BU USERID ROUTER
 // ------------------------------
 func (h *Handler) handleSelectSites(w http.ResponseWriter, r *http.Request) {
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
 	// Получаем id пользователя
-	userID := auth.GetUserIDFromContext(r.Context())
+	var userID int = auth.GetUserIDFromContext(r.Context())
 
 	// получаем все сайты по userID
 	sites, err := h.store.GetSitesByUserID(userID)

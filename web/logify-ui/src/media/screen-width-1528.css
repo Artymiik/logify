@@ -1,0 +1,97 @@
+@media only screen and (min-width: 1200px) {
+  #create__log__window {
+    width: 35vw !important;
+  }
+}
+
+@media only screen and (min-width: 1700px) {
+  #create__log__window {
+    width: 27vw !important;
+  }
+}
+
+@media only screen and (max-width: 1060px) {
+  #create__log__window {
+    width: 53vw !important;
+  }
+  #language__block {
+    min-width: 13vw;
+  }
+  #blocks__grid__index {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  #text__description_green__2,
+  #text__description_blue__1 {
+    font-size: 1rem;
+  }
+  #text__description__2,
+  #text__description__1 {
+    font-size: 0.9rem;
+  }
+  #text__title__2,
+  #text__title__1 {
+    font-size: 1.5rem;
+  }
+}
+
+@media only screen and (max-width: 899px) {
+  #create__log__window {
+    width: 70vw !important;
+  }
+  #create__web__window {
+    max-width: 70vw;
+  }
+  #not__found__icon {
+    font-size: 15vw;
+  }
+  #not__found__mainText {
+    font-size: 3vw;
+  }
+  #not__found__link {
+    font-size: 2.3vw;
+  }
+  #info__block {
+    width: 73vw;
+  }
+  #text__number__green,
+  #text__number__blue {
+    font-size: 1.5rem;
+    width: 50px;
+    height: 50px;
+  }
+
+  #panel__dashboard {
+    width: 95vw;
+  }
+  #__index__panel__dashboard {
+    display: flex;
+    justify-content: center;
+    right: 50%;
+    transform: translateX(50%);
+  }
+}
+
+@media only screen and (max-width: 699px) {
+  #blocks__category__log {
+    display: inline-block;
+  }
+  #block__category__log__1,
+  #block__category__log__2,
+  #block__category__log__3 {
+    margin: 10px 0;
+  }
+
+  #panel__dashboard {
+    width: 100vw;
+    border-radius: 0;
+  }
+  #navigation {
+    margin-bottom: 0;
+  }
+  #blocks__settings {
+    width: 100%;
+  }
+  #settings__description {
+    max-width: 100%;
+  }
+}

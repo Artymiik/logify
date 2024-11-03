@@ -7,22 +7,25 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"time"
 
 	"crypto/aes"
 	"crypto/cipher"
 
-	"github.com/Artymiik/logify/config"
+	env "github.com/Artymiik/logify/config"
 	"github.com/Artymiik/logify/types"
 	"github.com/go-playground/validator/v10"
+	"github.com/juju/ratelimit"
 )
 
-// -----------------
+// ------------------------------
+// ------------------------------
 // Переменная для валидации данных
-// -----------------
+// ------------------------------
 var Validate = validator.New()
 
-var key string = config.Envs.SUPER_SECRET_KEY
-var iv string = config.Envs.IV
+var key string = env.Envs.SUPER_SECRET_KEY
+var iv string = env.Envs.IV
 
 // ------------------------------
 // Проверка и декодирование данных от user
@@ -36,26 +39,37 @@ func ParseJSON(r *http.Request, payload any) error {
 }
 
 // ------------------------
+// ------------------------
 // Функция ответа пользователю
 // ------------------------
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
+	w.Header().Set("Content-Security-Policy", "script-src 'self';")
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 
 	return json.NewEncoder(w).Encode(v)
 }
 
-// -------------------
+// ------------------------
+// ------------------------
 // Функция обработки ошибок
-// -------------------
+// ------------------------
 func WriteError(w http.ResponseWriter, status int, err error) {
 	WriteJSON(w, status, map[string]string{"error": err.Error()})
 }
 
-// -----------------------
+// ------------------------
+// ------------------------
+// Функция избежания DDos
+// ------------------------
+func DDosPropperty() *ratelimit.Bucket {
+	return ratelimit.NewBucket(10, int64(time.Second))
+}
+
+// ---------------------------------------
 // Проверка на существование данных в struct
-// -----------------------
-func HasField(v types.ActionInsertPayload, field string) bool {
+// ---------------------------------------
+func HasField(v types.ArgsInsertPayload, field string) bool {
 	t := reflect.TypeOf(v)
 
 	for i := 0; i < t.NumField(); i++ {
@@ -68,9 +82,9 @@ func HasField(v types.ActionInsertPayload, field string) bool {
 }
 
 // -----------------------
+// -----------------------
 // Шифрование (encrypt)
 // -----------------------
-
 func Encrypt(plaintext string) (string, error) {
 	// Создание блока шифрования AES
 	block, err := aes.NewCipher([]byte(key))
@@ -93,9 +107,9 @@ func Encrypt(plaintext string) (string, error) {
 }
 
 // -----------------------
+// -----------------------
 // Де-шифрование (decrypt)
 // -----------------------
-
 func Decrypt(encodedCiphertext string) (string, error) {
 	// Декодирование зашифрованных данных из base64
 	ciphertext, err := base64.StdEncoding.DecodeString(encodedCiphertext)
@@ -125,9 +139,9 @@ func Decrypt(encodedCiphertext string) (string, error) {
 }
 
 // -----------------------
+// -----------------------
 // Шифрование в байтовом виде
 // -----------------------
-
 func UniqueLog(plaintext []byte) ([]byte, error) {
 	// Создание блока шифрования AES
 	block, err := aes.NewCipher([]byte(key))
@@ -148,9 +162,9 @@ func UniqueLog(plaintext []byte) ([]byte, error) {
 }
 
 // -----------------------
+// -----------------------
 // Де-шифрование в байтовом виде
 // -----------------------
-
 func DeUniqueLog(ciphertext []byte) (string, error) {
 
 	// Создание блока шифрования AES

@@ -1,11 +1,12 @@
-import React from "react";
-import Confetti from "react-confetti";
+import { lazy, useEffect, useState } from "react";
+const Confetti = lazy(() => import("react-confetti"));
 import { Link, useParams } from "react-router-dom";
-import { getLogAPI } from "../api/getLog-api";
+import { getLogAPI } from "../api/logs/get-log-api.GET";
 
 const NavigationInLog = () => {
-  const [copied, setCopied] = React.useState<boolean>(false);
-  const [uniqueClient, setUniqueClient] = React.useState<string>("");
+  const [copied, setCopied] = useState<boolean>(false);
+  const [uniqueClient, setUniqueClient] = useState<string>("");
+  const [statusLog, setStatusLog] = useState<string>("");
   const { siteName, logName } = useParams();
 
   // Массив с пунктами навигации
@@ -13,12 +14,12 @@ const NavigationInLog = () => {
     {
       ID: 1,
       Title: "Details",
-      Path: "/",
+      Path: `/dashboard/${siteName}/${logName}`,
     },
     {
       ID: 2,
       Title: "Build Logs",
-      Path: "/",
+      Path: `/dashboard/${siteName}/${logName}/log`,
     },
     {
       ID: 3,
@@ -33,7 +34,6 @@ const NavigationInLog = () => {
       .writeText(uniqueClient)
       .then(() => {
         setCopied(true);
-        console.log(uniqueClient);
         setTimeout(() => {
           setCopied(false);
         }, 3000);
@@ -45,7 +45,7 @@ const NavigationInLog = () => {
 
   // Отправка запрос на сервер
   // Для получения uniqueClient
-  React.useEffect(() => {
+  useEffect(() => {
     const uniqueClientGet = async () => {
       try {
         const { status, data } = await getLogAPI(
@@ -58,6 +58,7 @@ const NavigationInLog = () => {
         }
 
         setUniqueClient(data.log.uniqueClient);
+        setStatusLog(data.log.status);
       } catch (err) {
         console.log(err);
       }
@@ -75,13 +76,16 @@ const NavigationInLog = () => {
         <div className="mt-8 inline-block flex items-center">
           <div
             id="indicator"
-            className="bg-[#2c4c3d] w-[9px] h-[9px] rounded-xl"
+            className="w-[9px] h-[9px] rounded-xl"
+            style={{
+              background: statusLog == "active" ? "#2c4c3d" : "#502828",
+            }}
           ></div>
           <p className="ml-2 text-[16px] text-[#ddd]">{logName}</p>
         </div>
         <div>
           <p
-            className="bg-[#853DCE] text-[#ff] text-[12px] px-3 py-2 rounded-md cursor-pointer hover:bg-[#A667E4] transition"
+            className="bg-[#853DCE] text-[#fff] mt-[1.55rem] text-[12px] px-3 py-2 rounded-md cursor-pointer hover:bg-[#A667E4] transition"
             onClick={() => handleCopied(uniqueClient)}
           >
             Copy connect link
@@ -89,17 +93,20 @@ const NavigationInLog = () => {
         </div>
       </div>
 
-      <div className="flex items-center mt-10">
-        {NavigateLog.map((el, index) => (
-          <div key={index} className="mr-3">
-            <Link
-              to={el.Path}
-              className="text-[#fff] text-[15px] px-3 py-2 rounded transition hover:bg-[#211F2D] hover:text-[#fff]"
-            >
-              {el.Title}
-            </Link>
-          </div>
-        ))}
+      <div className="flex items-center mt-10 justify-between">
+        <div className="flex items-center">
+          {NavigateLog.map((el, index) => (
+            <div key={index} className="mr-3">
+              <Link
+                to={el.Path}
+                className="text-[#fff] text-[15px] px-3 py-2 rounded transition hover:bg-[#211F2D] hover:text-[#fff]"
+              >
+                {el.Title}
+              </Link>
+            </div>
+          ))}
+        </div>
+        <div className="bg-[transparent] w-7 h-7 flex items-center justify-center border border-[#33323e] rounded p-2"></div>
       </div>
       {/* Линия */}
       <div className="h-[1px] absolute w-full -ml-10 bg-[#33323e] my-7"></div>

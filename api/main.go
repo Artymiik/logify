@@ -7,6 +7,7 @@ import (
 	"github.com/Artymiik/logify/cmd/api"
 	"github.com/Artymiik/logify/config"
 	"github.com/Artymiik/logify/db"
+	"github.com/Artymiik/logify/pkg/cron"
 	"github.com/go-sql-driver/mysql"
 )
 
@@ -35,13 +36,17 @@ func main() {
 	// Проверка открытия БД
 	initStorage(db)
 
+	// Запуск фоновой задачи
+	// Уменьшение balance
+	go cron.StartCron(db)
+
 	// -------------------
 	// Слушаем на порте 8080
 	// -------------------
 	server := api.NewAPIServer(":8080", db)
 
 	// ---------------------
-	// Обработчик ошибок
+	// Обработчик ошибок server api
 	// ---------------------
 	if err := server.Run(); err != nil {
 		log.Fatal(err)

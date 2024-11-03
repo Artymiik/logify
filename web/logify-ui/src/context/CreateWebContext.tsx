@@ -1,5 +1,5 @@
-import React from "react";
-import { createWebAPI } from "../api/create-web-api";
+import { createContext, useContext, useState } from "react";
+import { createWebAPI } from "../api/web/create-web-api.POST";
 
 // интерфейс контекста
 // ===================
@@ -13,7 +13,7 @@ interface context {
 
 // инициализация контекста
 // =======================
-const CreateWebContext = React.createContext<context>({
+const CreateWebContext = createContext<context>({
   responseServer: "", // пустая строка для responseServer
   statusCode: 404, // значение по умолчанию для statusCode
   loader: false, // значение по умолчанию для loader
@@ -26,10 +26,10 @@ const CreateWebContext = React.createContext<context>({
 export const CreateWebProvider = ({ children }: any) => {
   // use states
   // ===================
-  const [loader, setLoader] = React.useState<boolean>(false);
-  const [responseServer, setResponseServer] = React.useState<string>("");
-  const [statusCode, setStatusCode] = React.useState<number>(400);
-  const [showErrorApp, setShowErrorApp] = React.useState<boolean>(false);
+  const [loader, setLoader] = useState<boolean>(false);
+  const [responseServer, setResponseServer] = useState<string>("");
+  const [statusCode, setStatusCode] = useState<number>(400);
+  const [showErrorApp, setShowErrorApp] = useState<boolean>(false);
 
   // Функция для работы с показом уведомлением
   // =========================================
@@ -76,6 +76,7 @@ export const CreateWebProvider = ({ children }: any) => {
     // Показ уведомления
     // Успешная регестрация
     // ====================
+    sessionStorage.removeItem("sites");
     setProperty(true, data, status);
   };
 
@@ -102,5 +103,4 @@ export const CreateWebProvider = ({ children }: any) => {
 
 // Получение контекста в компонентах
 // =================================
-export const useCreateWebContext = () =>
-  React.useContext<context>(CreateWebContext);
+export const useCreateWebContext = () => useContext<context>(CreateWebContext);

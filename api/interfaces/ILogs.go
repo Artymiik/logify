@@ -1,19 +1,29 @@
 package interfaces
 
-import "github.com/Artymiik/logify/types"
+import (
+	"io"
+
+	"github.com/Artymiik/logify/types"
+)
 
 type ILogs interface {
 	// ------------------------
 	// -----------------------
 	// Функция создания log в БД
 	// -----------------------
-	CreateDefaultLog(types.Log) error
+	CreateDefaultLog(category string, log types.Log) error
 
 	// ------------------------
 	// -----------------------
 	// Функция для получения лога по name
 	// -----------------------
 	GetLogByName(name string) (*types.Log, error)
+
+	// ------------------------------------------
+	// ------------------------------------------
+	// Функция вывода userID по uniqueClient из БД
+	// ------------------------------------------
+	GetUserIdByUniqueClient(uniqueClient string) (int, error)
 
 	// ------------------------
 	// -----------------------
@@ -63,4 +73,16 @@ type ILogs interface {
 	// Получение детальных данных лога
 	// -----------------------
 	DetailsLog(email, logName string) (string, error)
+
+	// -----------------------
+	// -----------------------
+	// Удаление лога
+	// -----------------------
+	DeleteLogByFileName(logName, fileName string) error
+
+	// ----------------------
+	// ----------------------
+	// Скачивание файла из S3
+	// ----------------------
+	DownloadFileLog(email, logName string) (io.ReadCloser, error)
 }

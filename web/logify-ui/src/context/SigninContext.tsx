@@ -1,6 +1,6 @@
-import React from "react";
 import Cookies from "js-cookie";
-import { signinAPI } from "../api/signin-api";
+import { signinAPI } from "../api/auth/signin-api.POST";
+import { createContext, useContext, useState } from "react";
 
 // интерфейс контекста
 // ===================
@@ -14,9 +14,9 @@ interface context {
 
 // инициализация контекста
 // =======================
-const SigninContext = React.createContext<context>({
+const SigninContext = createContext<context>({
   responseServer: "", // пустая строка для responseServer
-  statusCode: 404, // значение по умолчанию для statusCode
+  statusCode: 0, // значение по умолчанию для statusCode
   loader: false, // значение по умолчанию для loader
   showErrorApp: false, // значение по умолчанию для showErrorWindow
   handleSignin: () => {}, // пустая функция по умолчанию
@@ -27,10 +27,10 @@ const SigninContext = React.createContext<context>({
 export const SigninProvider = ({ children }: any) => {
   // use states
   // ===================
-  const [loader, setLoader] = React.useState<boolean>(false);
-  const [responseServer, setResponseServer] = React.useState<string>("");
-  const [statusCode, setStatusCode] = React.useState<number>(400);
-  const [showErrorApp, setShowErrorApp] = React.useState<boolean>(false);
+  const [loader, setLoader] = useState<boolean>(false);
+  const [responseServer, setResponseServer] = useState<string>("");
+  const [statusCode, setStatusCode] = useState<number>(0);
+  const [showErrorApp, setShowErrorApp] = useState<boolean>(false);
 
   // Функция для работы с показом уведомлением
   // =========================================
@@ -84,7 +84,7 @@ export const SigninProvider = ({ children }: any) => {
     // ===========================
     setTimeout(() => {
       window.location.href = `${import.meta.env.VITE_CLIENT_URI}/`;
-    }, 2000);
+    }, 1000);
   };
 
   // Установка значений в контекст
@@ -110,4 +110,4 @@ export const SigninProvider = ({ children }: any) => {
 
 // Получение контекста в компонентах
 // =================================
-export const useSigninContext = () => React.useContext<context>(SigninContext);
+export const useSigninContext = () => useContext<context>(SigninContext);

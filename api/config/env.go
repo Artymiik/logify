@@ -12,16 +12,22 @@ import (
 // Определение структуры env
 // ----------------
 type Config struct {
-	PublicHost             string
-	Port                   string
-	DBUser                 string
-	DBPassword             string
-	DBAddress              string
-	DBName                 string
+	// database
+	PublicHost string
+	Port       string
+	DBUser     string
+	DBPassword string
+	DBAddress  string
+	DBName     string
+	// S3 storage
+	ACCESS_KEY string
+	SECRET_KEY string
+	// jwt
 	JWTExpirationInSeconds int64
 	JWTSecret              string
-	SUPER_SECRET_KEY       string
-	IV                     string
+	// hashing
+	SUPER_SECRET_KEY string
+	IV               string
 }
 
 var Envs = initConfig()
@@ -36,16 +42,22 @@ func initConfig() Config {
 	// Данные для работы с БД
 	// ------------------
 	return Config{
-		PublicHost:             getEnv("PUBLIC_HOST", "autorack.proxy.rlwy.net"),                                               // mysql.railway.internal  http://localhost
-		Port:                   getEnv("PORT", "3306"),                                                                         // 3306   8080
-		DBUser:                 getEnv("DBU_USER", "root"),                                                                     // root  root
-		DBPassword:             getEnv("DB_PASSWORD", "mIRdwqeeczlTjSJYylZhkLKISfNbfgqm"),                                      // cBdebQpIKwdZjjuwGoeigaJaIvnZjCtJ   password
-		DBAddress:              fmt.Sprintf("%s:%s", getEnv("DB_HOST", "autorack.proxy.rlwy.net"), getEnv("DB_PORT", "25792")), // 127.0.0.1  3306
-		DBName:                 getEnv("DB_NAME", "railway"),                                                                   // railway   logify
+		// database
+		PublicHost: getEnv("PUBLIC_HOST", "http://localhost"),                                       // mysql.railway.internal  http://localhost
+		Port:       getEnv("PORT", "8080"),                                                          // 3306   8080
+		DBUser:     getEnv("DBU_USER", "root"),                                                      // root  root
+		DBPassword: getEnv("DB_PASSWORD", "password"),                                               // cBdebQpIKwdZjjuwGoeigaJaIvnZjCtJ   password
+		DBAddress:  fmt.Sprintf("%s:%s", getEnv("DB_HOST", "127.0.0.1"), getEnv("DB_PORT", "3306")), // 127.0.0.1  3306
+		DBName:     getEnv("DB_NAME", "logify"),                                                     // railway   logify
+		// S3 storage
+		ACCESS_KEY: getEnv("ACCESS_KEY", "7473cb7bcdeb473fbd4c6d9d628ac976"),
+		SECRET_KEY: getEnv("SECRET_KEY", "2950ff80ecbc478c8adbe0054f383882"),
+		// jwt
 		JWTExpirationInSeconds: getEnvAsInt("JWT_EXP", 3600*24*7),
 		JWTSecret:              getEnv("JWT_SECRET", "_logify_-secret-_token_-!2024!-envs."),
-		SUPER_SECRET_KEY:       getEnv("SUPER_SECRET_KEY", "abc&1*~#^2^#s0^=)^^7%b34"),
-		IV:                     getEnv("IV", "123456789012"),
+		// hashing
+		SUPER_SECRET_KEY: getEnv("SUPER_SECRET_KEY", "abc&1*~#^2^#s0^=)^^7%b34"),
+		IV:               getEnv("IV", "123456789012"),
 	}
 }
 

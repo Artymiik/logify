@@ -1,7 +1,5 @@
 package types
 
-import "time"
-
 //-------------------
 //-------------------
 // Тип для возращений в функциях
@@ -11,28 +9,27 @@ import "time"
 // Тип пользователя
 // -------------------
 type User struct {
-	ID            int       `json:"id"`
-	FirstName     string    `json:"firstName"`
-	LastName      string    `json:"lastName"`
-	UserName      string    `json:"username"`
-	UserNameUpper string    `json:"username_upper"`
-	Email         string    `json:"email"`
-	EmailUpper    string    `json:"email_upper"`
-	Password      string    `json:"password"`
-	CreatedAt     time.Time `json:"createdAt"`
+	ID            int     `json:"id"`
+	FirstName     string  `json:"firstName"`
+	LastName      string  `json:"lastName"`
+	UserName      string  `json:"username"`
+	UserNameUpper string  `json:"username_upper"`
+	Email         string  `json:"email"`
+	EmailUpper    string  `json:"email_upper"`
+	Password      string  `json:"password"`
+	Balance       float64 `json:"balance"`
 }
 
 // -------------------
 // Тип сайта
 // -------------------
 type Site struct {
-	ID          int       `json:"id"`
-	UserId      int       `json:"userId"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Link        string    `json:"link"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID          int    `json:"id"`
+	UserId      int    `json:"userId"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Link        string `json:"link"`
+	Status      string `json:"status"`
 }
 
 // -------------------
@@ -40,10 +37,14 @@ type Site struct {
 // -------------------
 type Log struct {
 	ID           int         `json:"id"`
+	DetailsLogId int         `json:"details_log_id"`
 	SiteID       int         `json:"siteID"`
+	UserID       int         `json:"userID"`
 	Name         string      `json:"name"`
-	UniqueClient []byte      `json:"uniqueClient"`
+	UniqueClient string      `json:"uniqueClient"`
 	Router       string      `json:"router"`
+	Status       string      `json:"status"`
+	CreatedAt    string      `json:"createdAt"`
 	Settings     SettingsLog `json:"settings"`
 }
 
@@ -51,27 +52,50 @@ type Log struct {
 // Тип настройков для логов
 // -------------------
 type SettingsLog struct {
-	Timestamp       string `json:"timestamp"` // Выжные данные в log
-	URL             bool   `json:"url"`
-	Methods         bool   `json:"methods"`
-	StatusCode      bool   `json:"statusCode"`
-	ResponseMessage bool   `json:"responseMessage"`
-	Description     bool   `json:"description"` // Данные второстепенной степени
-	IPAddress       bool   `json:"ip_address"`
-	GPS             bool   `json:"gps"`
-	UserName        bool   `json:"username"`
-	Email           bool   `json:"email"`
-	Cookie          bool   `json:"cookie"`
-	LocalStorage    bool   `json:"localStorage"`
-	Session         bool   `json:"session"`
-	Authenticate    bool   `json:"authenticate"`
+	Timestamp       bool `json:"timestamp"` // Выжные данные в log
+	URL             bool `json:"url"`
+	Methods         bool `json:"methods"`
+	StatusCode      bool `json:"statusCode"`
+	ResponseMessage bool `json:"responseMessage"`
+	Description     bool `json:"description"` // Данные второстепенной степени
+	IPAddress       bool `json:"ip_address"`
+	GPS             bool `json:"gps"`
+	UserName        bool `json:"username"`
+	Email           bool `json:"email"`
+	Cookie          bool `json:"cookie"`
+	LocalStorage    bool `json:"localStorage"`
+	Session         bool `json:"session"`
+	Authenticate    bool `json:"authenticate"`
 }
 
 type LogQuery struct {
 	ID           int    `json:"id"`
 	Name         string `json:"name"`
 	UniqueClient string `json:"uniqueClient"`
-	CreatedAt    string `json:"timestamp"`
+	Status       string `json:"status"`
+	CreatedAt    string `json:"createdAt"`
+}
+
+// -------------------
+// Тип конектов
+// -------------------
+type Conect struct {
+	ID        int     `json:"id"`
+	UserID    int     `json:"userID"`
+	Conect    string  `json:"conect"`
+	Status    string  `json:"status"`
+	Price     float64 `json:"price"`
+	CreatedAt string  `json:"createdAt"`
+}
+
+// -------------------
+// Тип details log БД
+// -------------------
+type DetailsLog struct {
+	ID           int    `json:"id"`
+	Cookie       string `json:"cookie"`
+	LocalStorage string `json:"localStorage"`
+	Session      string `json:"session"`
 }
 
 //-------------------
@@ -93,8 +117,8 @@ type RegisterUserPayload struct {
 // Тип login от user
 // ---------------------
 type LoginUserPayload struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 // -------------------
@@ -110,8 +134,9 @@ type CreateSitePayload struct {
 // Тип log
 // -------------------
 type CreateLogPayload struct {
-	Name   string `json:"name" validate:"required"`
-	Router string `json:"router" validate:"required"`
+	Name     string `json:"name" validate:"required"`
+	Router   string `json:"router" validate:"required"`
+	Category string `json:"category" validate:"required"`
 }
 
 type SettingsLogPayload struct {
@@ -119,10 +144,10 @@ type SettingsLogPayload struct {
 }
 
 type InsertLogPayload struct {
-	UniqueClient string              `json:"uniqueClient" validate:"required"`
-	Action       ActionInsertPayload `json:"action"`
+	UniqueClient string            `json:"uniqueClient" validate:"required"`
+	Args         ArgsInsertPayload `json:"args"`
 }
-type ActionInsertPayload struct {
+type ArgsInsertPayload struct {
 	Timestamp       string `json:"timestamp"` // Выжные данные в log
 	URL             string `json:"url"`
 	Methods         string `json:"methods"`
@@ -139,33 +164,52 @@ type ActionInsertPayload struct {
 	Authenticate    string `json:"authenticate"`
 }
 
-//-------------------
-//-------------------
+// -------------------
+// Тип транзакций
+// -------------------
+type ActiveConectPayload struct {
+	Conect string `json:"conect" validate:"required"`
+}
+
+// -------------------
+// -------------------
 // Тип для данных *(log.json)
-//-------------------
+// -------------------
 type LogStruct struct {
-	Title     string         `json:"Title"`
-	TimeStamp string         `json:"TimeStamp"`
-	Client    LogDataClient  `json:"Client"`
-	Server    LogDataServer  `json:"Server"`
-	Details   LogDataDetails `json:"Details"`
+	Title     string         `json:"title"`
+	TimeStamp string         `json:"timestamp"`
+	Client    LogDataClient  `json:"client"`
+	Server    LogDataServer  `json:"server"`
+	Details   LogDataDetails `json:"details"`
 }
 
 type LogDataClient struct {
-	URL     string `json:"URL"`
-	Methods string `json:"Methods"`
+	URL     string `json:"url"`
+	Methods string `json:"method"`
 }
 type LogDataServer struct {
-	StatusCode      string `json:"StatusCode"`
-	ResponseMessage string `json:"ResponseMessage"`
+	StatusCode      string `json:"status"`
+	ResponseMessage string `json:"response"`
 }
 type LogDataDetails struct {
-	Description  string `json:"Description"`
-	IPAddress    string `json:"IPAddress"`
-	GPS          string `json:"GPS"`
-	UserName     string `json:"UserName"`
-	Email        string `json:"Email"`
-	Cookie       string `json:"Cookie"`
-	Session      string `json:"Session"`
-	Authenticate string `json:"Authenticate"`
+	Description  string `json:"description"`
+	IPAddress    string `json:"ip_address"`
+	GPS          string `json:"gps"`
+	UserName     string `json:"userName"`
+	Email        string `json:"email"`
+	Cookie       string `json:"cookie"`
+	LocalStorage string `json:"localStorage"`
+	Session      string `json:"session"`
+	Authenticate string `json:"authenticate"`
+}
+
+// ---------------------------
+// Структура генерации конекта
+// ---------------------------
+type GenerateConect struct {
+	Balance            float64 `json:"balance"`
+	CountLogs          int     `json:"countLogs"`
+	TimeLogs           string  `json:"timeLogs"`
+	CountLogFieldsFile int     `json:"CountLogFieldsFile"`
+	CountSites         int     `json:"countSites"`
 }

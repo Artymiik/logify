@@ -1,8 +1,10 @@
 package site
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/Artymiik/logify/types"
 )
@@ -41,10 +43,12 @@ func scanRowIntoSites(rows *sql.Rows) (*types.Site, error) {
 // Создание сайта
 // ------------------------
 func (s *Store) CreateSite(site types.Site) error {
-	// ---------------------------
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// запрос к БД на создания сайта
-	// ---------------------------
-	_, err := s.db.Exec("insert into sites (userId, name, description, link, status) values (?, ?, ?, ?, ?)", site.UserId, site.Name, site.Description, site.Link, "active")
+	_, err := s.db.ExecContext(ctx, "insert into sites (userId, name, description, link, status) values (?, ?, ?, ?, ?)", site.UserId, site.Name, site.Description, site.Link, site.Status)
 
 	// ---------------------
 	// Обработка ошибки БД
@@ -60,10 +64,12 @@ func (s *Store) CreateSite(site types.Site) error {
 // Получение данных сайта по Name
 // ------------------------
 func (s *Store) GetSiteByName(name string) (*types.Site, error) {
-	// -----------------------
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// Выводим данные из БД
-	// -----------------------
-	rows, err := s.db.Query("select * from sites where name = ?", name)
+	rows, err := s.db.QueryContext(ctx, "select * from sites where name = ?", name)
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +96,12 @@ func (s *Store) GetSiteByName(name string) (*types.Site, error) {
 // Функция на получение данных sites по ID
 // ------------------------
 func (s *Store) GetSiteById(id int) (*types.Site, error) {
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// Выводим данные из БД
-	rows, err := s.db.Query("select * from sites where userId = ?", id)
+	rows, err := s.db.QueryContext(ctx, "select * from sites where userId = ?", id)
 	if err != nil {
 		return nil, err
 	}
@@ -113,12 +123,16 @@ func (s *Store) GetSiteById(id int) (*types.Site, error) {
 	return site, nil
 }
 
-// ------------------------
+// -----------------------------------------
 // Функция на получение данных sites по siteID
-// ------------------------
+// -----------------------------------------
 func (s *Store) GetSiteBySiteID(id int) (*types.Site, error) {
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// Выводим данные из БД
-	rows, err := s.db.Query("select * from sites where Id = ?", id)
+	rows, err := s.db.QueryContext(ctx, "select * from sites where Id = ?", id)
 	if err != nil {
 		return nil, err
 	}
@@ -144,10 +158,12 @@ func (s *Store) GetSiteBySiteID(id int) (*types.Site, error) {
 // Функция на получение всех сайтов sites по userID
 // ------------------------
 func (s *Store) GetSitesByUserID(userID int) ([]types.Site, error) {
-	// -----------------------
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// Выводим данные из БД
-	// -----------------------
-	rows, err := s.db.Query("select * from sites where userId = ?", userID)
+	rows, err := s.db.QueryContext(ctx, "select * from sites where userId = ?", userID)
 
 	// обработка ошибки
 	if err != nil {

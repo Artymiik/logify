@@ -1,14 +1,15 @@
-import React from "react";
+import { lazy, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSignupContext } from "../context/SignupContext";
 import ErrorWindow from "../components/ErrorWindow";
-import Loader from "../components/Loader/Loader";
+// import Loader from "../components/Loader/Loader";
+const Loader = lazy(() => import("../components/Loader/Loader"));
 
 export const Signup = () => {
-  const [firstName, setFirstName] = React.useState<string>("");
-  const [lastName, setLastName] = React.useState<string>("");
-  const [email, setEmail] = React.useState<string>("");
-  const [password, setPassword] = React.useState<string>("");
+  const [firstName, setFirstName] = useState<string>("");
+  const [lastName, setLastName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
 
   const { responseServer, statusCode, loader, showErrorApp, handleSignup } =
     useSignupContext();
@@ -25,75 +26,53 @@ export const Signup = () => {
 
       <div className="bg-[#0b0a0f] h-screen">
         <div className="h-full flex items-center justify-center flex-col">
-          <div className="bg-[#fff] w-[50rem] h-[32rem] rounded-lg">
-            <div className="flex items-center">
-              <div>
-                <img
-                  src="/public/bg-signin.jpg"
-                  alt=""
-                  className="rounded-l-lg w-[400px] h-[32rem] object-cover"
-                />
-              </div>
-              <div className="p-5">
-                <p className="text-[#000] text-[40px] font-medium w-[340px]">
-                  Welcome, register to your account
+          <div className="bg-[#13111c] w-[25rem] h-[28rem] rounded-lg p-5 flex flex-col justify-center">
+            <p className="text-center text-[1.2rem] mb-7 -mt-10">
+              Sign up to logify
+            </p>
+            <div className="flex items-center mb-5">
+              <input
+                type="text"
+                className="bg-[transparent] border border-[#656565] text-[14px] p-3 pl-3 outline-none rounded-xl text-[#fff] w-full mr-5"
+                placeholder="First name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+              <input
+                type="text"
+                className="bg-[transparent] border border-[#656565] text-[14px] p-3 pl-3 outline-none rounded-xl text-[#fff] w-full"
+                placeholder="Last name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </div>
+            <input
+              type="email"
+              className="bg-[transparent] border border-[#656565] text-[14px] p-3 pl-3 outline-none rounded-xl text-[#fff] w-full"
+              placeholder="E-mail"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <input
+              type="password"
+              className="bg-[transparent] border border-[#656565] text-[14px] mt-5 p-3 pl-3 outline-none rounded-xl mt-1 text-[#fff] w-full"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              className="w-full flex justify-center bg-[#fff] text-[#000] my-5 mb-10 rounded-xl py-3 px-5 hover:bg-[#cdcdcd] transition text-[12px]"
+              onClick={signupSubmit}
+            >
+              {loader ? <Loader /> : "Sign up Here"}
+            </button>
+            <div>
+              <div className="h-[1px] bg-[#333] w-full"></div>
+              <Link to="/signin">
+                <p className="text-[#fff] text-[12px] text-center font-light mt-5 -mb-[3rem]">
+                  Have account? Login
                 </p>
-                <div>
-                  <div className="mt-5">
-                    <p className="text-[#000] text-[12px] ml-3">
-                      First name and Last name
-                    </p>
-                    <div className="flex items-center">
-                      <input
-                        type="text"
-                        className="bg-[#ddd] mr-4 text-[15px] p-2 pl-3 outline-none rounded-3xl mt-1 text-[#000] w-[170px]"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                      />
-                      <input
-                        type="text"
-                        className="bg-[#ddd] text-[15px] p-2 pl-3 outline-none rounded-3xl mt-1 text-[#000] w-[170px]"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-5">
-                    <p className="text-[#000] text-[12px] ml-3">
-                      E-mail Address
-                    </p>
-                    <input
-                      type="email"
-                      className="bg-[#ddd] text-[15px] p-2 pl-3 outline-none rounded-3xl mt-1 text-[#000] w-full"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="mt-5">
-                    <p className="text-[#000] text-[12px] ml-3">Password</p>
-                    <input
-                      type="password"
-                      className="bg-[#ddd] text-[15px] p-2 pl-3 outline-none rounded-3xl mt-1 text-[#000] w-full"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                  <button
-                    className="w-[110px] flex justify-center bg-[#091a10] text-[#fff] my-5 mb-4 rounded-3xl py-3 px-5 hover:bg-[#0e2c1a] transition"
-                    onClick={signupSubmit}
-                  >
-                    {loader ? <Loader /> : "Sign up Here"}
-                  </button>
-                </div>
-                <div>
-                  <div className="h-[1px] bg-[#ddd] w-full"></div>
-                  <Link to="/signin">
-                    <p className="text-[#000] text-[12px] mt-4">
-                      Have account? Login
-                    </p>
-                  </Link>
-                </div>
-              </div>
+              </Link>
             </div>
           </div>
         </div>

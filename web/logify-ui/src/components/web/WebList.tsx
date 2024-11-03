@@ -1,10 +1,11 @@
-import gsap from "gsap";
+import { gsap } from "gsap/all";
 import { Check, Plus } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import CreateWeb from "./CreateWeb";
-import React from "react";
+import { lazy, useEffect } from "react";
 import { useWebListContext } from "../../context/WebListContext";
 import ErrorWindow from "../ErrorWindow";
+
+const CreateWeb = lazy(() => import("./CreateWeb"));
 
 const WebList = () => {
   const { sites, responseServer, statusCode, showErrorWindow, handleWebList } =
@@ -18,7 +19,7 @@ const WebList = () => {
     });
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     handleWebList();
   }, []);
 
@@ -32,11 +33,19 @@ const WebList = () => {
       <CreateWeb />
 
       <div className="absolute top-[4rem] left-[140px] z-10">
-        <div className="bg-[#13111c] w-[250px] min-h-[150px] rounded-lg border border-[#33323e]">
+        <div className="bg-[#13111c] w-[250px] max-h-[40vh] overflow-auto min-h-[150px] rounded-lg border border-[#33323e]">
           <div className="p-3">
             <p className="text-[#a1a0ab] text-[12px] mb-2">Websites</p>
             {sites.map((site: any, index: number) => (
-              <Link to={"/dashboard/" + site.name} key={index}>
+              <Link
+                to={"/dashboard/" + site.name}
+                onClick={() =>
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 80)
+                }
+                key={index}
+              >
                 <div
                   className={`mb-2 flex items-center ${
                     siteName === site.name ? "bg-[#1f132a]" : ""

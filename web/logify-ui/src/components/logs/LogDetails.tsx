@@ -1,10 +1,10 @@
 import gsap from "gsap";
 import { Code, Info } from "lucide-react";
-import React from "react";
 import { useParams } from "react-router-dom";
 import { useLogDetailsContext } from "../../context/LogDetailsContext";
 import ErrorWindow from "../ErrorWindow";
 import NavigationInLog from "../NavigationInLog";
+import { useEffect } from "react";
 
 export const LogDetails = () => {
   // states
@@ -20,15 +20,15 @@ export const LogDetails = () => {
 
   // Отправка на сервер и анимации
   // =============================
-  React.useEffect(() => {
+  useEffect(() => {
     // анимация
     // ========
     const tl = gsap.timeline({ repeat: -1 });
 
-    tl.to("#indicator", 2.5, {
-      background: "#2c4c3d",
+    tl.to("#indicator", 2, {
+      scale: 1.2,
     }).to("#indicator", 1, {
-      background: "#368660",
+      scale: 1,
     });
 
     handleLogDetails(siteName ? siteName : "", logName ? logName : "");

@@ -2,6 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #33323e;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #33323e;
+}
+
+/* Firefox */
+::-moz-scrollbar {
+  width: 10px;
+}
+
+::-moz-scrollbar-track {
+  background: transparent;
+}
+
+::-moz-scrollbar-thumb {
+  background: #33323e;
+  border-radius: 15px;
+}
+
+::-moz-scrollbar-thumb:hover {
+  background: #33323e;
+}
+
 :root {
   font-family: "Inter", sans-serif;
   line-height: 1.5;
@@ -9,6 +44,8 @@
 
   color: rgba(255, 255, 255, 1);
   background-color: hsl(250, 24%, 9%);
+
+  /* background-color: hsl(0, 0%, 0%); */
 }
 
 p {
@@ -34,11 +71,13 @@ button {
   cursor: pointer;
 }
 
-pre, code {
+pre,
+code {
   color: #dfdfdf;
 }
 
-input, textarea {
+input,
+textarea {
   font-family: "Inter", sans-serif;
   font-size: 11px;
 }
@@ -48,3 +87,22 @@ body {
   padding: 0;
   overflow-x: hidden;
 }
+
+
+#user_action{
+  top: calc(1vh + 50px);
+  right: calc(1vh + 20px);
+}
+
+#money__action {
+  top: calc(1vh + 50px);
+  right: calc(2vw + 60px);
+}
+/* 
+#bg-money {
+  height: calc(2vh + 20px);
+}
+#bg-in-money {
+  height: calc(3vw + 20px);
+  width: calc(8vw + 12.7vw);
+} */

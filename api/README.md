@@ -1,6 +1,6 @@
 # React + TypeScript + Vite (client + logify-react)
 
--- href vercel
+https://logify-web-ui.vercel.app/
 
 # GOLANG + MySQL (server)
 
@@ -38,8 +38,3 @@ Currently, two official plugins are available:
 **Start Server**
 
 - make run -or- go run main.go
-
-LOGS
-Конструкция: log-email[nameLog]-number(1)
-
-Пример: temp / log-aou9qf009q2[fojq8398fjoifd]-2.json

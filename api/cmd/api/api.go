@@ -5,11 +5,12 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	"github.com/Artymiik/logify/services/logs"
 	"github.com/Artymiik/logify/services/site"
+	"github.com/Artymiik/logify/services/transaction"
 	"github.com/Artymiik/logify/services/user"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
 type APIServer struct {
@@ -52,8 +53,17 @@ func (s *APIServer) Run() error {
 	// Определение logs (site) функции
 	// ---------------------
 	logsStore := logs.NewStore(s.db)
-	logsHandler := logs.NewHandler(logsStore, userStore, siteStore)
+	// транзакции transaction функции
+	transactionStore := transaction.NewStore(s.db)
+	// logs (site) функции
+	logsHandler := logs.NewHandler(logsStore, userStore, siteStore, transactionStore)
 	logsHandler.RegisterRoutes(subrouter)
+
+	// ---------------------
+	// Определение transaction функции
+	// ---------------------
+	transactionHandler := transaction.NewHandler(transactionStore, logsStore, userStore, siteStore)
+	transactionHandler.RegisterRoutes(subrouter)
 
 	// -------------------
 	// подключаем CORS

@@ -5,7 +5,6 @@ export type TypesSite = {
   description: string;
   link: string;
   status: string;
-  createdAt: string;
 };
 
 export type TypesLog = {
@@ -32,6 +31,32 @@ export type TypesSettings = {
   localStorage: boolean;
   session: boolean;
   authenticate: boolean;
+};
+
+export type ResponseDetailsLog = {
+  timestamp: string;
+  url: string;
+  methods: string;
+  statusCode: string;
+  responseMessage: string;
+  description: string;
+  ip_address: string;
+  gps: string;
+  userName: string;
+  email: string;
+  cookie: string;
+  localStorage: string;
+  session: string;
+  authenticate: string;
+};
+
+export type ConectType = {
+  id: number;
+  userID: number;
+  conect: string;
+  status: string;
+  price: number;
+  createdAt: string;
 };
 
 type SettingsLog = {

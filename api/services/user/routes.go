@@ -40,9 +40,14 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 // LOGIN ROUTER
 // ----------------------
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
-	// -----------------
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
 	// Получаем данные пользователя
-	// -----------------
 	var payload *types.LoginUserPayload
 
 	// Отправляем пользователю ошибку, что не все поля заполнены
@@ -89,9 +94,14 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 // REGISTRATION ROUTER
 // ----------------------
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
-	// -----------------
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
 	// Получаем данные пользователя
-	// -----------------
 	var payload *types.RegisterUserPayload
 
 	// Отправляем пользователю ошибку, что не все поля заполнены

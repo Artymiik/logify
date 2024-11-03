@@ -1,5 +1,5 @@
-import React from "react";
-import { signupAPI } from "../api/signup-api";
+import { createContext, useContext, useState } from "react";
+import { signupAPI } from "../api/auth/signup-api.POST";
 
 // интерфейс контекста
 // ===================
@@ -18,7 +18,7 @@ interface context {
 
 // инициализация контекста
 // =======================
-const SignupContext = React.createContext<context>({
+const SignupContext = createContext<context>({
   responseServer: "", // пустая строка для responseServer
   statusCode: 404, // значение по умолчанию для statusCode
   loader: false, // значение по умолчанию для loader
@@ -31,10 +31,10 @@ const SignupContext = React.createContext<context>({
 export const SignupProvider = ({ children }: any) => {
   // use states
   // ===================
-  const [loader, setLoader] = React.useState<boolean>(false);
-  const [responseServer, setResponseServer] = React.useState<string>("");
-  const [statusCode, setStatusCode] = React.useState<number>(400);
-  const [showErrorApp, setShowErrorApp] = React.useState<boolean>(false);
+  const [loader, setLoader] = useState<boolean>(false);
+  const [responseServer, setResponseServer] = useState<string>("");
+  const [statusCode, setStatusCode] = useState<number>(400);
+  const [showErrorApp, setShowErrorApp] = useState<boolean>(false);
 
   // Функция для работы с показом уведомлением
   // =========================================
@@ -121,4 +121,4 @@ export const SignupProvider = ({ children }: any) => {
 
 // Получение контекста в компонентах
 // =================================
-export const useSignupContext = () => React.useContext<context>(SignupContext);
+export const useSignupContext = () => useContext<context>(SignupContext);

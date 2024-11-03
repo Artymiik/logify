@@ -1,6 +1,6 @@
-import React from "react";
+import { lazy, useEffect, useState } from "react";
 import { useSettingsContext } from "../../context/SettingsContext";
-import NavigationInLog from "../NavigationInLog";
+const NavigationInLog = lazy(() => import("../NavigationInLog"));
 import { SettingsData } from "./settings_data";
 import "./SettingsStyle.css";
 import { useParams } from "react-router-dom";
@@ -11,7 +11,7 @@ const SettingsList = () => {
   const { siteName, logName } = useParams();
 
   // состояние для checked у checkbox
-  const [settingData, setSettingData] = React.useState(SettingsData);
+  const [settingData, setSettingData] = useState(SettingsData);
 
   // инициализируем переменные из контекста
   const {
@@ -30,7 +30,7 @@ const SettingsList = () => {
   };
 
   // отправляем запрос в контекст
-  React.useEffect(() => {
+  useEffect(() => {
     handleSettings(siteName ? siteName : "", logName ? logName : "");
   }, []);
 
@@ -47,13 +47,17 @@ const SettingsList = () => {
         <div className="flex items-center flex-wrap justify-center">
           {SettingsData.map((data, index) => (
             <div
+              id="blocks__settings"
               className="p-4 border border-[#33323e] rounded-xl m-2"
               key={index}
             >
               <p className="text-[15px] text-[#bdbdbd] tracking-wide">
                 {data.Title}
               </p>
-              <p className="text-[12px] tracking-wide max-w-[12.5rem] my-4">
+              <p
+                id="settings__description"
+                className="text-[12px] tracking-wide max-w-[12.5rem] my-4"
+              >
                 {data.Description}
               </p>
               <input

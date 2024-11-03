@@ -1,5 +1,5 @@
-import React from "react";
-import { getLogAPI } from "../api/getLog-api";
+import { createContext, useContext, useState } from "react";
+import { getLogAPI } from "../api/logs/get-log-api.GET";
 import { TypesLog } from "../types/types";
 
 // интерфейс контекста
@@ -16,7 +16,7 @@ interface context {
 
 // инициализация контекста
 // =======================
-const LogDetailsContext = React.createContext<context>({
+const LogDetailsContext = createContext<context>({
   log: {} as TypesLog, // пустой объект для log
   uniqueClient: "", // пустая строка для uniqueClient
   codeConnectLog: "", // пустая строка для code
@@ -31,12 +31,12 @@ const LogDetailsContext = React.createContext<context>({
 export const LogDetailsProvider = ({ children }: any) => {
   // use states
   // ===================
-  const [log, setLog] = React.useState<TypesLog>(Object);
-  const [uniqueClient, setUniqueClient] = React.useState<string>("");
-  const [codeConnectLog, setCodeConnectLog] = React.useState<string>("");
-  const [responseServer, setResponseServer] = React.useState<string>("");
-  const [statusCode, setStatusCode] = React.useState<number>(400);
-  const [showErrorWindow, setShowErrorWindow] = React.useState<boolean>(false);
+  const [log, setLog] = useState<TypesLog>(Object);
+  const [uniqueClient, setUniqueClient] = useState<string>("");
+  const [codeConnectLog, setCodeConnectLog] = useState<string>("");
+  const [responseServer, setResponseServer] = useState<string>("");
+  const [statusCode, setStatusCode] = useState<number>(400);
+  const [showErrorWindow, setShowErrorWindow] = useState<boolean>(false);
 
   // Функция для работы с показом уведомлением
   // =========================================
@@ -104,4 +104,4 @@ export const LogDetailsProvider = ({ children }: any) => {
 // Получение контекста в компонентах
 // =================================
 export const useLogDetailsContext = () =>
-  React.useContext<context>(LogDetailsContext);
+  useContext<context>(LogDetailsContext);

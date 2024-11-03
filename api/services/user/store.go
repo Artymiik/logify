@@ -1,9 +1,11 @@
 package user
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Artymiik/logify/types"
 )
@@ -33,6 +35,7 @@ func scanRowIntoUser(rows *sql.Rows) (*types.User, error) {
 		&user.Email,
 		&user.EmailUpper,
 		&user.Password,
+		&user.Balance,
 	)
 
 	if err != nil {
@@ -46,10 +49,12 @@ func scanRowIntoUser(rows *sql.Rows) (*types.User, error) {
 // Функция для вывода из БД user по email
 // ---------------------
 func (s *Store) GetUserByEmail(email string) (*types.User, error) {
-	// -------------------------
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// Запрос к БД на вывод пользователя по ID
-	// -------------------------
-	rows, err := s.db.Query("select * from users where email = ?", email)
+	rows, err := s.db.QueryContext(ctx, "select * from users where email = ?", email)
 	// проверка ошибки
 	if err != nil {
 		return nil, err
@@ -81,10 +86,12 @@ func (s *Store) GetUserByEmail(email string) (*types.User, error) {
 // Получение пользователя из БД по ID
 // ------------------------
 func (s *Store) GetUserById(id int) (*types.User, error) {
-	// -----------------------
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	// Запрос к БД на вывод пользователя по ID
-	// -----------------------
-	rows, err := s.db.Query("select * from users where id = ?", id)
+	rows, err := s.db.QueryContext(ctx, "select * from users where id = ?", id)
 	if err != nil {
 		return nil, err
 	}
@@ -114,11 +121,14 @@ func (s *Store) GetUserById(id int) (*types.User, error) {
 // Создание пользователя
 // ------------------------
 func (s *Store) CreateUser(user types.User) error {
+	// определение контекста времени
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
 	username := fmt.Sprintf("%s %s", user.FirstName, user.LastName)
-	// ---------------------------
+
 	// запрос к БД на создания пользователя
-	// ---------------------------
-	_, err := s.db.Exec("insert into users (firstName, lastName, username, username_upper, email, email_upper, password) VALUES (?, ?, ?, ?, ?, ?, ?)", user.FirstName, user.LastName, username, strings.ToUpper(username), user.Email, strings.ToUpper(user.Email), user.Password)
+	_, err := s.db.ExecContext(ctx, "insert into users (firstName, lastName, username, username_upper, email, email_upper, password) VALUES (?, ?, ?, ?, ?, ?, ?)", user.FirstName, user.LastName, username, strings.ToUpper(username), user.Email, strings.ToUpper(user.Email), user.Password)
 
 	// ---------------------
 	// Обработка ошибки БД

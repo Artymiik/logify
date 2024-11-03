@@ -1,12 +1,12 @@
 import gsap from "gsap";
 import { X } from "lucide-react";
-import React from "react";
-import Loader from "../Loader/Loader";
 import { useCreateWebContext } from "../../context/CreateWebContext";
 import ErrorWindow from "../ErrorWindow";
+import { lazy, useState } from "react";
+const Loader = lazy(() => import("../Loader/Loader"));
 
 const CreateWeb = () => {
-  const [fields, setFields] = React.useState({
+  const [fields, setFields] = useState({
     name: "",
     description: "",
     link: "",
@@ -54,7 +54,10 @@ const CreateWeb = () => {
             <p className="font-medium text-[20px]">New WebSite</p>
             <X size={17} className="cursor-pointer" onClick={closeCreateWeb} />
           </div>
-          <p className="max-w-[45vw] mb-5 mt-3 text-[#878593] text-[14px]">
+          <p
+            id="create__web__window"
+            className="max-w-[45vw] mb-5 mt-3 text-[#878593] text-[14px]"
+          >
             Connect your site to link your logs to it in the future. Connect an
             active site with an active link, non-active sites will not connect!
           </p>

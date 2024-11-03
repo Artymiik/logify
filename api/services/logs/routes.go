@@ -3,6 +3,7 @@ package logs
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -15,13 +16,14 @@ import (
 )
 
 type Handler struct {
-	store     interfaces.ILogs
-	userStore interfaces.IUser
-	siteStore interfaces.ISite
+	store            interfaces.ILogs
+	userStore        interfaces.IUser
+	siteStore        interfaces.ISite
+	transactionStore interfaces.ITransaction
 }
 
-func NewHandler(store interfaces.ILogs, userStore interfaces.IUser, siteStore interfaces.ISite) *Handler {
-	return &Handler{store: store, userStore: userStore, siteStore: siteStore}
+func NewHandler(store interfaces.ILogs, userStore interfaces.IUser, siteStore interfaces.ISite, transactionStore interfaces.ITransaction) *Handler {
+	return &Handler{store: store, userStore: userStore, siteStore: siteStore, transactionStore: transactionStore}
 }
 
 // -------------------
@@ -35,11 +37,11 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 	// обновление настроек лога
 	router.HandleFunc("/{site}/{log}/settings/set", auth.WithJWTAuth(h.handleSettingsLogSet, h.userStore)).Methods("PUT")
 	// удаление лога
-	router.HandleFunc("/{site}/{log}/delete", auth.WithJWTAuth(h.handleDeleteLog, h.userStore)).Methods("POST")
+	router.HandleFunc("/{site}/{log}/delete", auth.WithJWTAuth(h.handleDeleteLog, h.userStore)).Methods("DELETE")
 	// получение всех логов по {site}
 	router.HandleFunc("/{site}/logs", auth.WithJWTAuth(h.handleSelectLogs, h.userStore)).Methods("GET") // Вывод logs по siteID
 	// получение определенного лога по {name}
-	router.HandleFunc("/{site}/{log}", auth.WithJWTAuth(h.handleSelectLogById, h.userStore)).Methods("GET")
+	router.HandleFunc("/{site}/{log}/select", auth.WithJWTAuth(h.handleSelectLogById, h.userStore)).Methods("GET")
 	// скачивание лога по {name}
 	router.HandleFunc("/{site}/{log}/download", auth.WithJWTAuth(h.handleDownloadLog, h.userStore)).Methods("GET")
 	// вывод клиенту содержимого лога
@@ -60,12 +62,33 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 // CREATE LOGS SITE ROUTER
 // ------------------------------
 func (h *Handler) handleCreateLog(w http.ResponseWriter, r *http.Request) {
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
 	// Получаем id пользователя
-	userId := auth.GetUserIDFromContext(r.Context())
+	var userId int = auth.GetUserIDFromContext(r.Context())
+
 	// Получаем пользователя
 	u, err := h.userStore.GetUserById(userId)
 	if err != nil {
 		utils.WriteError(w, http.StatusForbidden, err)
+		return
+	}
+
+	// получаем баланс
+	balance, err := h.transactionStore.GetBalanceByUserID(u.ID)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// проверяем баланс
+	if balance <= 0 {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("top up your balance for activation"))
 		return
 	}
 
@@ -97,7 +120,7 @@ func (h *Handler) handleCreateLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// --------------------------
-	// Создаем log в json файле (log-userName[nameLog]-number(1)) log-aou9qf009q2[fojq8398fjoifd]-2.json
+	// Создаем log в json файле (log-email[nameLog]-number(1)) log-aou9qf009q2[fojq8398fjoifd]-2.json
 	// --------------------------
 	// Получаем id сайта чтобы записать в файл
 	getSiteID, err := h.siteStore.GetSiteById(u.ID)
@@ -126,10 +149,11 @@ func (h *Handler) handleCreateLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// создаем log в БД
-	err = h.store.CreateDefaultLog(types.Log{
+	err = h.store.CreateDefaultLog(payload.Category, types.Log{
 		SiteID:       siteID.ID,
+		UserID:       userId,
 		Name:         payload.Name,
-		UniqueClient: uniqClient,
+		UniqueClient: string(uniqClient), // ВОТ ТУТ ваываываываыва
 		Router:       payload.Router,
 	})
 
@@ -147,9 +171,16 @@ func (h *Handler) handleCreateLog(w http.ResponseWriter, r *http.Request) {
 // SETTINGS LOGS SITE ROUTER
 // ------------------------------
 func (h *Handler) handleSettingsLog(w http.ResponseWriter, r *http.Request) {
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
 	// получаем name log из url
 	vars := mux.Vars(r)
-	logName := vars["log"]
+	var logName string = vars["log"]
 
 	// получаем настройки log из БД по logName
 	setting, err := h.store.GetLogByName(logName)
@@ -165,9 +196,16 @@ func (h *Handler) handleSettingsLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleSettingsLogSet(w http.ResponseWriter, r *http.Request) {
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
 	// получаем из URL log name
 	var vars = mux.Vars(r)
-	logName := vars["log"]
+	var logName string = vars["log"]
 
 	// получаем данные от пользователя
 	var payload *types.SettingsLogPayload
@@ -198,7 +236,49 @@ func (h *Handler) handleSettingsLogSet(w http.ResponseWriter, r *http.Request) {
 // DELETE LOGS SITE ROUTER
 // ------------------------------
 func (h *Handler) handleDeleteLog(w http.ResponseWriter, r *http.Request) {
-	utils.WriteJSON(w, http.StatusOK, "OK")
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
+	// получаем из url log
+	vars := mux.Vars(r)
+	var logName string = vars["log"]
+
+	// получение id пользователя
+	var userID int = auth.GetUserIDFromContext(r.Context())
+	u, err := h.userStore.GetUserById(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusForbidden, err)
+		return
+	}
+
+	// получение шифрованного email
+	email, err := utils.Encrypt(u.Email)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("%s", err))
+		return
+	}
+
+	// получение шифрованного logName
+	log, err := utils.Encrypt(logName)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// построение файла
+	var fileName string = fmt.Sprintf("log-%s[%s].json", email, log)
+
+	// удаления лога
+	if err := h.store.DeleteLogByFileName(logName, fileName); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, "log has been deleted successfully")
 }
 
 // ------------------------------
@@ -206,9 +286,31 @@ func (h *Handler) handleDeleteLog(w http.ResponseWriter, r *http.Request) {
 // SELECTED ALL LOGS SITE ROUTER
 // ------------------------------
 func (h *Handler) handleSelectLogs(w http.ResponseWriter, r *http.Request) {
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
+	// получаем id пользователя
+	var userID int = auth.GetUserIDFromContext(r.Context())
 	// получаем из url site
 	vars := mux.Vars(r)
-	siteName := vars["site"]
+	var siteName string = vars["site"]
+
+	// получаем баланс
+	balance, err := h.transactionStore.GetBalanceByUserID(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// проверяем баланс
+	if balance <= 0 {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("top up your balance for activation"))
+		return
+	}
 
 	// получаем siteID из БД
 	siteID, err := h.siteStore.GetSiteByName(siteName)
@@ -233,9 +335,32 @@ func (h *Handler) handleSelectLogs(w http.ResponseWriter, r *http.Request) {
 // SELECTED LOG BY ID ROUTER
 // ------------------------------
 func (h *Handler) handleSelectLogById(w http.ResponseWriter, r *http.Request) {
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
+	// получаем id пользователя
+	var userID int = auth.GetUserIDFromContext(r.Context())
+
 	// получаем из url log name
 	vars := mux.Vars(r)
-	logName := vars["log"]
+	var logName string = vars["log"]
+
+	// получаем баланс
+	balance, err := h.transactionStore.GetBalanceByUserID(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// проверяем баланс
+	if balance <= 0 {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("top up your balance for activation"))
+		return
+	}
 
 	// получаем определенный log из БД по logName
 	log, err := h.store.GetLogByName(logName)
@@ -271,7 +396,53 @@ func (h *Handler) handleSelectLogById(w http.ResponseWriter, r *http.Request) {
 // DOWNLOAD LOGS SITE ROUTER
 // ------------------------------
 func (h *Handler) handleDownloadLog(w http.ResponseWriter, r *http.Request) {
-	utils.WriteJSON(w, http.StatusOK, "OK")
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
+	// получаем id пользователя
+	var userID int = auth.GetUserIDFromContext(r.Context())
+
+	// получаем из url log name
+	vars := mux.Vars(r)
+	var logName string = vars["log"]
+
+	// получаем баланс
+	balance, err := h.transactionStore.GetBalanceByUserID(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// проверяем баланс
+	if balance <= 0 {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("top up your balance for activation"))
+		return
+	}
+
+	// получание данных пользователя
+	u, err := h.userStore.GetUserById(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// скачивание лога
+	download, err := h.store.DownloadFileLog(u.Email, logName)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// возвращяем ответ пользователю
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=log_user.json"))
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	io.Copy(w, download)
 }
 
 // ------------------------------
@@ -279,12 +450,20 @@ func (h *Handler) handleDownloadLog(w http.ResponseWriter, r *http.Request) {
 // ВЫВОД СОДЕРЖИМОГО ЛОГА
 // ------------------------------
 func (h *Handler) handleSelectDetailsLog(w http.ResponseWriter, r *http.Request) {
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
 	// получаем из URL log name
 	vars := mux.Vars(r)
-	logName := vars["log"]
+	var logName string = vars["log"]
 
 	// Получаем id пользователя
-	var userId = auth.GetUserIDFromContext(r.Context())
+	var userId int = auth.GetUserIDFromContext(r.Context())
+
 	// Получаем пользователя
 	u, err := h.userStore.GetUserById(userId)
 	if err != nil {
@@ -292,12 +471,27 @@ func (h *Handler) handleSelectDetailsLog(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// получаем баланс
+	balance, err := h.transactionStore.GetBalanceByUserID(u.ID)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// проверяем баланс
+	if balance <= 0 {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("top up your balance for activation"))
+		return
+	}
+
+	// Вывод содержимого лога
 	data, err := h.store.DetailsLog(u.Email, logName)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
+	// отправляем пользователю содержимое лога
 	utils.WriteJSON(w, http.StatusOK, data)
 }
 
@@ -319,6 +513,32 @@ func (h *Handler) handleInsertLog(w http.ResponseWriter, r *http.Request) {
 	if err := utils.Validate.Struct(payload); err != nil {
 		errors := err.(validator.ValidationErrors)
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload: %v", errors))
+		return
+	}
+
+	// Получаем id пользователя
+	userId, err := h.store.GetUserIdByUniqueClient(payload.UniqueClient)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// Проверяем что userID не меньше 0
+	if userId <= 0 {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("invalid user"))
+		return
+	}
+
+	// получаем баланс
+	balance, err := h.transactionStore.GetBalanceByUserID(userId)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// проверяем баланс
+	if balance <= 0 {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("top up your balance for activation"))
 		return
 	}
 
@@ -364,7 +584,7 @@ func (h *Handler) handleInsertLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, deUniqueClient)
+	utils.WriteJSON(w, http.StatusOK, "logify::log::send::SUCCESS")
 }
 
 // ------------------------------
@@ -372,5 +592,12 @@ func (h *Handler) handleInsertLog(w http.ResponseWriter, r *http.Request) {
 // SELECT LOG NPM ROUTER
 // ------------------------------
 func (h *Handler) handleSelectLog(w http.ResponseWriter, r *http.Request) {
+	// Проверка на кол-во запросов от пользователя
+	limiter := utils.DDosPropperty()
+	if limiter.Available() == 0 {
+		utils.WriteError(w, http.StatusTooManyRequests, fmt.Errorf("too many requests"))
+		return
+	}
+
 	utils.WriteJSON(w, http.StatusOK, "OK")
 }

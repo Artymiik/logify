@@ -1,8 +1,8 @@
-import React from "react";
 import { TypesLog } from "../types/types";
-import { settingsAPI } from "../api/settings-api";
+import { settingsAPI } from "../api/logs/settings-api.GET";
 import { SettingsData } from "../components/settings/settings_data";
-import { settingsSetAPI } from "../api/settings.set-api";
+import { settingsSetAPI } from "../api/logs/settings.set-api.PUT";
+import { createContext, useContext, useState } from "react";
 
 // интерфейс контекста
 // ===================
@@ -21,7 +21,7 @@ interface context {
 
 // инициализация контекста
 // =======================
-const SettingsContext = React.createContext<context>({
+const SettingsContext = createContext<context>({
   settings: {} as TypesLog, // пустой объект для log
   responseServer: "", // пустая строка для responseServer
   statusCode: 404, // значение по умолчанию для statusCode
@@ -35,10 +35,10 @@ const SettingsContext = React.createContext<context>({
 export const SettingsProvider = ({ children }: any) => {
   // use states
   // ===================
-  const [settings, setSettings] = React.useState<TypesLog>(Object);
-  const [responseServer, setResponseServer] = React.useState<string>("");
-  const [statusCode, setStatusCode] = React.useState<number>(400);
-  const [showErrorWindow, setShowErrorWindow] = React.useState<boolean>(false);
+  const [settings, setSettings] = useState<TypesLog>(Object);
+  const [responseServer, setResponseServer] = useState<string>("");
+  const [statusCode, setStatusCode] = useState<number>(400);
+  const [showErrorWindow, setShowErrorWindow] = useState<boolean>(false);
 
   // Функция для работы с показом уведомлением
   // =========================================
@@ -145,5 +145,4 @@ export const SettingsProvider = ({ children }: any) => {
 
 // Получение контекста в компонентах
 // =================================
-export const useSettingsContext = () =>
-  React.useContext<context>(SettingsContext);
+export const useSettingsContext = () => useContext<context>(SettingsContext);
